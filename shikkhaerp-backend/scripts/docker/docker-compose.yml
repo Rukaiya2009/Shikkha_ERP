@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: shikkhaerp-postgres
+    environment:
+      POSTGRES_DB: shikkhaerp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Farhana251@
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: shikkhaerp-backend
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/shikkhaerp
+      DB_USERNAME: postgres
+      DB_PASSWORD: Farhana251@
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

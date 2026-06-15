@@ -1,0 +1,63 @@
+package com.shikkhaerp.dashboard.api;
+
+import com.shikkhaerp.core.dto.ApiResponse;
+import com.shikkhaerp.dashboard.dto.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+@RestController
+@RequestMapping("/v1/dashboard/admin")
+@RequiredArgsConstructor
+public class AdminDashboardController {
+    
+    private final AdminDashboardService dashboardService;
+    
+    // 1. Summary cards (total students, teachers, revenue, etc.)
+    @GetMapping("/summary")
+    public ApiResponse<DashboardSummaryDto> getSummary() {
+        return ApiResponse.success(dashboardService.getSummary());
+    }
+    
+    // 2. Recent activities (last 10 actions)
+    @GetMapping("/recent-activities")
+    public ApiResponse<List<RecentActivityDto>> getRecentActivities() {
+        return ApiResponse.success(dashboardService.getRecentActivities());
+    }
+    
+    // 3. Student enrollment trend (last 6 months)
+    @GetMapping("/enrollment-trend")
+    public ApiResponse<ChartDataDto> getEnrollmentTrend() {
+        return ApiResponse.success(dashboardService.getEnrollmentTrend());
+    }
+    
+    // 4. Revenue trend (last 6 months)
+    @GetMapping("/revenue-trend")
+    public ApiResponse<ChartDataDto> getRevenueTrend() {
+        return ApiResponse.success(dashboardService.getRevenueTrend());
+    }
+    
+    // 5. Class-wise student count
+    @GetMapping("/class-distribution")
+    public ApiResponse<List<ClassDistributionDto>> getClassDistribution() {
+        return ApiResponse.success(dashboardService.getClassDistribution());
+    }
+    
+    // 6. Gender ratio (male/female)
+    @GetMapping("/gender-ratio")
+    public ApiResponse<GenderRatioDto> getGenderRatio() {
+        return ApiResponse.success(dashboardService.getGenderRatio());
+    }
+    
+    // 7. Recent registered users
+    @GetMapping("/recent-users")
+    public ApiResponse<List<UserDto>> getRecentUsers(@RequestParam(defaultValue = "5") int limit) {
+        return ApiResponse.success(dashboardService.getRecentUsers(limit));
+    }
+    
+    // 8. System health check
+    @GetMapping("/health")
+    public ApiResponse<SystemHealthDto> getSystemHealth() {
+        return ApiResponse.success(dashboardService.getSystemHealth());
+    }
+}

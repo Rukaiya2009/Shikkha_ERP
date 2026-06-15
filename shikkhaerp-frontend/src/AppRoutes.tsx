@@ -1,0 +1,83 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginContainer from './features/auth/containers/Login.container';
+import RegisterContainer from './features/auth/containers/Register.container';
+import StudentDashboard from './features/dashboard/StudentDashboard';
+import SuperAdminDashboard from './features/dashboard/SuperAdminDashboard';
+import AdminDashboard from './features/dashboard/AdminDashboard';
+import TeacherDashboard from './features/dashboard/TeacherDashboard';
+import ParentDashboard from './features/dashboard/ParentDashboard';
+
+// Get user role from localStorage
+const getUserRole = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return user.role;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const isAuthenticated = () => {
+  const token = localStorage.getItem('accessToken');
+  const user = localStorage.getItem('user');
+  return !!(token && user);
+};
+
+export const AppRoutes = () => {
+  const userRole = getUserRole();
+  const authenticated = isAuthenticated();
+  
+  console.log('AppRoutes - userRole:', userRole, 'authenticated:', authenticated);
+  
+  if (!authenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginContainer />} />
+        <Route path="/register" element={<RegisterContainer />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+  
+  const getDashboardPath = () => {
+    switch (userRole) {
+      case 'super_admin':
+        return '/super-admin/dashboard';  // ← Changed to match backend
+      case 'school_admin':
+        return '/school-admin/dashboard';  // ← Changed to match backend
+      case 'teacher':
+        return '/teacher/dashboard';
+      case 'parent':
+        return '/parent/dashboard';
+      case 'student':
+        return '/student/dashboard';
+      default:
+        return '/login';
+    }
+  };
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginContainer />} />
+      <Route path="/register" element={<RegisterContainer />} />
+      
+      {/* Dashboard Routes */}
+      <Route path="/student/dashboard" element={<StudentDashboard />} />
+      <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+      <Route path="/school-admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+      <Route path="/parent/dashboard" element={<ParentDashboard />} />
+      
+      {/* Fallback/Compatibility Routes */}
+      <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      
+      <Route path="/" element={<Navigate to={getDashboardPath()} replace />} />
+      <Route path="*" element={<Navigate to={getDashboardPath()} replace />} />
+    </Routes>
+  );
+};

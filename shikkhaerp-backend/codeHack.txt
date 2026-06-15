@@ -1,0 +1,12 @@
+ cd /f/ShikkhaERP-Application/shikkhaerp-backend
+
+
+cd shikkhaerp-backend
+----backend
+
+mvn clean compile
+------
+ mvn clean spring-boot:run
+-----frontend
+npm run dev
+cd shikkhaerp-frontend
