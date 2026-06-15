@@ -1,0 +1,16 @@
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+
+# Backend
+target/
+*.class
+*.log
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
