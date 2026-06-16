@@ -1,4 +1,3 @@
-
 package com.shikkhaerp.modules.auth.service;
 
 import com.shikkhaerp.modules.auth.dto.LoginRequest;
@@ -8,6 +7,7 @@ import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.entity.User.UserRole;
 import com.shikkhaerp.modules.user.repository.UserRepository;
 import com.shikkhaerp.bootstrap.security.JwtTokenProvider;
+import com.shikkhaerp.modules.tenant.service.TenantService;  // ← NEW
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,23 +24,39 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final TenantService tenantService;  // ← NEW
     
     @Transactional
     public User register(RegisterRequest request) {
+        // Check if user exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
         
-        if (request.getRole() != UserRole.SUPER_ADMIN && (request.getSchoolId() == null || request.getSchoolId().trim().isEmpty())) {
+        // Determine school ID
+        String schoolId = request.getSchoolId();
+        
+        // If schoolId is not provided in request, get from tenant context
+        if (schoolId == null || schoolId.trim().isEmpty()) {
+            // SUPER_ADMIN doesn't need a school
+            if (request.getRole() != UserRole.SUPER_ADMIN) {
+                schoolId = tenantService.getCurrentSchoolId();
+            }
+        }
+        
+        // Validate school_id for non-super_admin roles
+        if (request.getRole() != UserRole.SUPER_ADMIN && 
+            (schoolId == null || schoolId.trim().isEmpty())) {
             throw new RuntimeException("School ID is required for " + request.getRole());
         }
         
+        // Create user
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getFullName());
         user.setRole(request.getRole());
-        user.setSchoolId(request.getSchoolId());
+        user.setSchoolId(schoolId);
         
         User savedUser = userRepository.save(user);
         savedUser.verifyEmail();
