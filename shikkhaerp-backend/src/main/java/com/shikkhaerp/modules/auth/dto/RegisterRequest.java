@@ -2,8 +2,7 @@ package com.shikkhaerp.modules.auth.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
-import com.shikkhaerp.modules.auth.entity.Role;
-import java.util.UUID;
+import com.shikkhaerp.modules.user.entity.User.UserRole;
 
 @Data
 public class RegisterRequest {
@@ -20,8 +19,7 @@ public class RegisterRequest {
     private String fullName;
     
     @NotNull(message = "Role is required")
-    private Role role;
+    private UserRole role;  // ← Changed from Role to UserRole
     
-    // Make schoolId optional - remove @NotNull
-    private String schoolId;  // Optional now
+    private String schoolId;
 }

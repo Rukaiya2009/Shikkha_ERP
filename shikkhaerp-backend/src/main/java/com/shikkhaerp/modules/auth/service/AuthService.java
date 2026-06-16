@@ -7,7 +7,7 @@ import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.entity.User.UserRole;
 import com.shikkhaerp.modules.user.repository.UserRepository;
 import com.shikkhaerp.bootstrap.security.JwtTokenProvider;
-import com.shikkhaerp.modules.tenant.service.TenantService;  // ← NEW
+import com.shikkhaerp.modules.tenant.service.TenantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final TenantService tenantService;  // ← NEW
+    private final TenantService tenantService;
     
     @Transactional
     public User register(RegisterRequest request) {
@@ -38,7 +38,6 @@ public class AuthService {
         
         // If schoolId is not provided in request, get from tenant context
         if (schoolId == null || schoolId.trim().isEmpty()) {
-            // SUPER_ADMIN doesn't need a school
             if (request.getRole() != UserRole.SUPER_ADMIN) {
                 schoolId = tenantService.getCurrentSchoolId();
             }
@@ -58,38 +57,44 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setSchoolId(schoolId);
         
-        User savedUser = userRepository.save(user);
-        savedUser.verifyEmail();
-        savedUser.setEnabled(true);
-        savedUser.setStatus(User.UserStatus.ACTIVE);
-        
-        return userRepository.save(savedUser);
+        return userRepository.save(user);
     }
     
     @Transactional
     public LoginResponse login(LoginRequest request) {
+        // Authenticate
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         
+        // Get user
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
         
+        // Check if user is enabled
         if (!user.isEnabled()) {
             throw new RuntimeException("Account is disabled");
         }
         
+        // Check if user is locked
         if (user.isLocked()) {
             throw new RuntimeException("Account is locked");
         }
         
+        // Record successful login
         user.recordLoginSuccess(null, null);
         userRepository.save(user);
         
-        String accessToken = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole().name());
-        String refreshToken = tokenProvider.generateRefreshToken(user.getId());
+        // Generate tokens
+        String userId = user.getId();
+        String email = user.getEmail();
+        String role = user.getRole().name();
+        
+        String accessToken = tokenProvider.generateToken(userId, email, role);
+        String refreshToken = tokenProvider.generateRefreshToken(userId);
         String redirectUrl = getDashboardUrl(user.getRole());
         
+        // Build response
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
             .id(user.getId())
             .email(user.getEmail())
