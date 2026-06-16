@@ -11,6 +11,7 @@ export interface RegisterFormData {
   email: string;
   password: string;
   role: string;
+  schoolId?: string; // ✅ Added – temporary for backend testing
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
@@ -38,6 +39,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       email,
       password,
       role,
+      schoolId: '1', // 🔴 TEMPORARY – hardcoded for testing
     });
   };
 
