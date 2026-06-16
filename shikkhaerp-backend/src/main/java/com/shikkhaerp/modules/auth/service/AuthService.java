@@ -2,7 +2,11 @@ package com.shikkhaerp.modules.auth.service;
 
 import com.shikkhaerp.modules.auth.dto.LoginRequest;
 import com.shikkhaerp.modules.auth.dto.LoginResponse;
+import com.shikkhaerp.modules.auth.dto.LogoutRequest;
+import com.shikkhaerp.modules.auth.dto.LogoutResponse;
 import com.shikkhaerp.modules.auth.dto.RegisterRequest;
+import com.shikkhaerp.modules.auth.entity.RefreshToken;
+import com.shikkhaerp.modules.auth.repository.RefreshTokenRepository;
 import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.entity.User.UserRole;
 import com.shikkhaerp.modules.user.repository.UserRepository;
@@ -16,40 +20,39 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
     private final TenantService tenantService;
+    private final TokenBlacklistService tokenBlacklistService;
     
     @Transactional
     public User register(RegisterRequest request) {
-        // Check if user exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
         
-        // Determine school ID
         String schoolId = request.getSchoolId();
         
-        // If schoolId is not provided in request, get from tenant context
         if (schoolId == null || schoolId.trim().isEmpty()) {
             if (request.getRole() != UserRole.SUPER_ADMIN) {
                 schoolId = tenantService.getCurrentSchoolId();
             }
         }
         
-        // Validate school_id for non-super_admin roles
         if (request.getRole() != UserRole.SUPER_ADMIN && 
             (schoolId == null || schoolId.trim().isEmpty())) {
             throw new RuntimeException("School ID is required for " + request.getRole());
         }
         
-        // Create user
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -57,35 +60,34 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setSchoolId(schoolId);
         
+        // AUTO-VERIFY FOR DEVELOPMENT
+        user.setEnabled(true);
+        user.setEmailVerified(true);
+        user.setStatus(User.UserStatus.ACTIVE);
+        
         return userRepository.save(user);
     }
     
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        // Authenticate
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         
-        // Get user
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check if user is enabled
         if (!user.isEnabled()) {
             throw new RuntimeException("Account is disabled");
         }
         
-        // Check if user is locked
         if (user.isLocked()) {
             throw new RuntimeException("Account is locked");
         }
         
-        // Record successful login
         user.recordLoginSuccess(null, null);
         userRepository.save(user);
         
-        // Generate tokens
         String userId = user.getId();
         String email = user.getEmail();
         String role = user.getRole().name();
@@ -94,7 +96,12 @@ public class AuthService {
         String refreshToken = tokenProvider.generateRefreshToken(userId);
         String redirectUrl = getDashboardUrl(user.getRole());
         
-        // Build response
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setUserId(userId);
+        refreshTokenEntity.setExpiresAt(LocalDateTime.now().plusDays(7));
+        refreshTokenRepository.save(refreshTokenEntity);
+        
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
             .id(user.getId())
             .email(user.getEmail())
@@ -109,6 +116,35 @@ public class AuthService {
             .tokenType("Bearer")
             .user(userInfo)
             .redirectUrl(redirectUrl)
+            .build();
+    }
+    
+    @Transactional
+    public LogoutResponse logout(LogoutRequest request) {
+        String refreshToken = request.getRefreshToken();
+        
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            try {
+                String userId = tokenProvider.getUserIdFromToken(refreshToken);
+                tokenBlacklistService.blacklistToken(refreshToken, userId);
+                refreshTokenRepository.deleteByToken(refreshToken);
+                
+                return LogoutResponse.builder()
+                    .success(true)
+                    .message("Logged out successfully")
+                    .build();
+                    
+            } catch (Exception e) {
+                return LogoutResponse.builder()
+                    .success(true)
+                    .message("Logged out successfully")
+                    .build();
+            }
+        }
+        
+        return LogoutResponse.builder()
+            .success(true)
+            .message("Logged out successfully")
             .build();
     }
     
