@@ -60,10 +60,14 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setSchoolId(schoolId);
         
-        // AUTO-VERIFY FOR DEVELOPMENT
+        // =============================================
+        // DEVELOPMENT MODE: Auto-verify ALL users
+        // TODO: Remove this block when email verification is implemented
+        // =============================================
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setStatus(User.UserStatus.ACTIVE);
+        // =============================================
         
         return userRepository.save(user);
     }
@@ -99,7 +103,7 @@ public class AuthService {
         RefreshToken refreshTokenEntity = new RefreshToken();
         refreshTokenEntity.setToken(refreshToken);
         refreshTokenEntity.setUserId(userId);
-        refreshTokenEntity.setExpiresAt(LocalDateTime.now().plusDays(7));
+        refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(refreshTokenEntity);
         
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
