@@ -40,17 +40,22 @@ public class AuthService {
             throw new RuntimeException("Email already registered");
         }
         
-        String schoolId = request.getSchoolId();
+        // =============================================
+        // SCHOOL ID: Derived from tenant context
+        // Frontend does NOT send schoolId
+        // =============================================
+        String schoolId = null;
         
-        if (schoolId == null || schoolId.trim().isEmpty()) {
-            if (request.getRole() != UserRole.SUPER_ADMIN) {
-                schoolId = tenantService.getCurrentSchoolId();
-            }
+        // SUPER_ADMIN doesn't need a school
+        if (request.getRole() != UserRole.SUPER_ADMIN) {
+            schoolId = tenantService.getCurrentSchoolId();
         }
         
-        if (request.getRole() != UserRole.SUPER_ADMIN && 
-            (schoolId == null || schoolId.trim().isEmpty())) {
-            throw new RuntimeException("School ID is required for " + request.getRole());
+        // =============================================
+        // DEVELOPMENT: Use default school if still null
+        // =============================================
+        if (schoolId == null || schoolId.trim().isEmpty()) {
+            schoolId = "1"; // Default school for development
         }
         
         User user = new User();
@@ -60,14 +65,10 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setSchoolId(schoolId);
         
-        // =============================================
-        // DEVELOPMENT MODE: Auto-verify ALL users
-        // TODO: Remove this block when email verification is implemented
-        // =============================================
+        // Auto-verify for development
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setStatus(User.UserStatus.ACTIVE);
-        // =============================================
         
         return userRepository.save(user);
     }

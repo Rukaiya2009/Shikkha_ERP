@@ -19,7 +19,8 @@ public class RegisterRequest {
     private String fullName;
     
     @NotNull(message = "Role is required")
-    private UserRole role;  // ← Changed from Role to UserRole
+    private UserRole role;
     
+    // schoolId is OPTIONAL - derived from tenant context
     private String schoolId;
 }
