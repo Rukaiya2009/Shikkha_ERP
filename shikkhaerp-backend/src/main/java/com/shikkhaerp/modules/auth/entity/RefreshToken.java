@@ -24,8 +24,8 @@ public class RefreshToken {
     @Column(name = "user_id", nullable = false)
     private String userId;
     
-    @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    @Column(name = "expiry_date", nullable = false)  // ← Changed from expires_at to expiry_date
+    private LocalDateTime expiryDate;
     
     @Column(name = "is_revoked")
     private boolean isRevoked = false;
@@ -39,6 +39,6 @@ public class RefreshToken {
     }
     
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
+        return LocalDateTime.now().isAfter(expiryDate);
     }
 }

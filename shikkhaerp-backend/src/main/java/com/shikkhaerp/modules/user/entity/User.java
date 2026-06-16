@@ -54,7 +54,6 @@ public class User {
     private String lastLoginIp;
     private String lastLoginUserAgent;
     
-    // Email Verification Fields
     private boolean emailVerified = true;
     private String emailVerificationToken;
     private LocalDateTime emailVerificationTokenExpiry;
@@ -62,15 +61,12 @@ public class User {
     private boolean phoneVerified = false;
     private boolean enabled = true;
     
-    // Security fields
     private Integer loginAttempts = 0;
     private LocalDateTime lockedUntil;
     
-    // Multi-tenant support
     private String schoolId;
     private String tenantId;
     
-    // ===== AUDIT TRAIL =====
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -85,7 +81,6 @@ public class User {
     @LastModifiedBy
     private String updatedBy;
     
-    // ===== SOFT DELETE (using deleted_at and deleted_by only) =====
     private LocalDateTime deletedAt;
     private String deletedBy;
     
@@ -97,17 +92,13 @@ public class User {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (role == null) role = UserRole.STUDENT;
-        if (status == null) status = UserStatus.PENDING_VERIFICATION;
+        if (status == null) status = UserStatus.ACTIVE;  // ← Changed to ACTIVE
         if (loginAttempts == null) loginAttempts = 0;
-        if (role == UserRole.SUPER_ADMIN) {
-            emailVerified = true;
-            enabled = true;
-            status = UserStatus.ACTIVE;
-        } else {
-            emailVerified = false;
-            enabled = false;
-            status = UserStatus.PENDING_VERIFICATION;
-        }
+        
+        // DEVELOPMENT: Auto-verify all users
+        emailVerified = true;
+        enabled = true;
+        status = UserStatus.ACTIVE;
     }
     
     @PreUpdate
