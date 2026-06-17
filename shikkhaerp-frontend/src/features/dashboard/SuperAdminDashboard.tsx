@@ -1,75 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import superAdminService from './services/superAdmin.service';
-import { DashboardLayout } from './components/DashboardLayout';
 
 const SuperAdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalSchools: 0,
-    totalUsers: 0,
-    totalRevenue: 0,
-    growth: 0,
-  });
-
-  const token = localStorage.getItem('accessToken') || '';
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      setLoading(true);
-      try {
-        const summary = await superAdminService.getSummary(token);
-        setStats({
-          totalSchools: summary.data?.totalSchools || 0,
-          totalUsers: summary.data?.totalUsers || 0,
-          totalRevenue: summary.data?.totalRevenue || 0,
-          growth: summary.data?.growth || 0,
-        });
-      } catch (error) {
-        console.error('Failed to load dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDashboardData();
-  }, [token]);
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      superAdminService.getStats(token)
+        .then((data) => {
+          setStats(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   if (loading) {
-    return (
-      <DashboardLayout title="Super Admin Dashboard">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
 
   return (
-    <DashboardLayout title="Super Admin Dashboard">
-      <div className="mb-6">
-        <p className="text-gray-600">Welcome back, {user?.fullName}</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500 text-sm">Total Schools</p>
-          <p className="text-2xl font-bold text-gray-800">{stats.totalSchools}</p>
+    <div>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Super Admin Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats cards */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <p className="text-sm text-gray-500">Total Schools</p>
+          <p className="text-2xl font-bold">{stats?.totalSchools || 0}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500 text-sm">Total Users</p>
-          <p className="text-2xl font-bold text-gray-800">{stats.totalUsers}</p>
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <p className="text-sm text-gray-500">Total Users</p>
+          <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500 text-sm">Total Revenue</p>
-          <p className="text-2xl font-bold text-gray-800">${stats.totalRevenue}</p>
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <p className="text-sm text-gray-500">Active Schools</p>
+          <p className="text-2xl font-bold">{stats?.activeSchools || 0}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500 text-sm">Growth Rate</p>
-          <p className="text-2xl font-bold text-green-600">+{stats.growth}%</p>
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <p className="text-sm text-gray-500">Revenue</p>
+          <p className="text-2xl font-bold">${stats?.revenue || 0}</p>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
