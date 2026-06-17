@@ -1,49 +1,25 @@
-import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../features/auth/store/auth.slice';
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+import { Footer } from './Footer';
 
 export const DashboardLayout: React.FC = () => {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <div style={{ width: '250px', background: '#2c3e50', color: 'white', padding: '20px' }}>
-        <h2 style={{ marginBottom: '20px' }}>ShikkhaERP</h2>
-        <nav>
-          <div style={{ marginBottom: '10px' }}>
-            <Link to={`/${user?.role}/dashboard`} style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <Link to={`/${user?.role}/students`} style={{ color: 'white', textDecoration: 'none' }}>Students</Link>
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <Link to={`/${user?.role}/teachers`} style={{ color: 'white', textDecoration: 'none' }}>Teachers</Link>
-          </div>
-          <div style={{ marginBottom: '10px' }}>
-            <Link to={`/${user?.role}/classes`} style={{ color: 'white', textDecoration: 'none' }}>Classes</Link>
-          </div>
-        </nav>
-        <button onClick={handleLogout} style={{ marginTop: '50px', padding: '10px', width: '100%', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>
-          Logout
-        </button>
-      </div>
-      
-      {/* Main Content */}
-      <div style={{ flex: 1, background: '#ecf0f1' }}>
-        <div style={{ background: 'white', padding: '15px', borderBottom: '1px solid #ddd' }}>
-          <h3>Welcome, {user?.name || 'User'} ({user?.role})</h3>
-        </div>
-        <div style={{ padding: '20px' }}>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header onMenuClick={toggleSidebar} />
+      <div className="flex flex-1 relative">
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           <Outlet />
-        </div>
+        </main>
       </div>
+      <Footer />
     </div>
   );
 };
