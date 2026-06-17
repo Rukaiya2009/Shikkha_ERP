@@ -1,4 +1,4 @@
-
+//cat > src/main/java/com/shikkhaerp/modules/auth/entity/FailedLoginAttempt.java << 'EOF'
 package com.shikkhaerp.modules.auth.entity;
 
 import jakarta.persistence.*;
@@ -36,6 +36,9 @@ public class FailedLoginAttempt {
     
     @Column(name = "failure_reason")
     private String failureReason;
+    
+    @Column(name = "resolved")
+    private boolean resolved = false;
     
     @PrePersist
     protected void onCreate() {
