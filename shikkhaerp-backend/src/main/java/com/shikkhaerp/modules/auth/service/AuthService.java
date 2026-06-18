@@ -1,13 +1,17 @@
-
 package com.shikkhaerp.modules.auth.service;
 
 import com.shikkhaerp.modules.auth.dto.LoginRequest;
 import com.shikkhaerp.modules.auth.dto.LoginResponse;
+import com.shikkhaerp.modules.auth.dto.LogoutRequest;
+import com.shikkhaerp.modules.auth.dto.LogoutResponse;
 import com.shikkhaerp.modules.auth.dto.RegisterRequest;
+import com.shikkhaerp.modules.auth.entity.RefreshToken;
+import com.shikkhaerp.modules.auth.repository.RefreshTokenRepository;
 import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.entity.User.UserRole;
 import com.shikkhaerp.modules.user.repository.UserRepository;
 import com.shikkhaerp.bootstrap.security.JwtTokenProvider;
+import com.shikkhaerp.modules.tenant.service.TenantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,14 +20,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
     
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final TenantService tenantService;
+    private final TokenBlacklistService tokenBlacklistService;
     
     @Transactional
     public User register(RegisterRequest request) {
@@ -31,8 +40,22 @@ public class AuthService {
             throw new RuntimeException("Email already registered");
         }
         
-        if (request.getRole() != UserRole.SUPER_ADMIN && (request.getSchoolId() == null || request.getSchoolId().trim().isEmpty())) {
-            throw new RuntimeException("School ID is required for " + request.getRole());
+        // =============================================
+        // SCHOOL ID: Derived from tenant context
+        // Frontend does NOT send schoolId
+        // =============================================
+        String schoolId = null;
+        
+        // SUPER_ADMIN doesn't need a school
+        if (request.getRole() != UserRole.SUPER_ADMIN) {
+            schoolId = tenantService.getCurrentSchoolId();
+        }
+        
+        // =============================================
+        // DEVELOPMENT: Use default school if still null
+        // =============================================
+        if (schoolId == null || schoolId.trim().isEmpty()) {
+            schoolId = "1"; // Default school for development
         }
         
         User user = new User();
@@ -40,14 +63,14 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getFullName());
         user.setRole(request.getRole());
-        user.setSchoolId(request.getSchoolId());
+        user.setSchoolId(schoolId);
         
-        User savedUser = userRepository.save(user);
-        savedUser.verifyEmail();
-        savedUser.setEnabled(true);
-        savedUser.setStatus(User.UserStatus.ACTIVE);
+        // Auto-verify for development
+        user.setEnabled(true);
+        user.setEmailVerified(true);
+        user.setStatus(User.UserStatus.ACTIVE);
         
-        return userRepository.save(savedUser);
+        return userRepository.save(user);
     }
     
     @Transactional
@@ -70,9 +93,19 @@ public class AuthService {
         user.recordLoginSuccess(null, null);
         userRepository.save(user);
         
-        String accessToken = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole().name());
-        String refreshToken = tokenProvider.generateRefreshToken(user.getId());
+        String userId = user.getId();
+        String email = user.getEmail();
+        String role = user.getRole().name();
+        
+        String accessToken = tokenProvider.generateToken(userId, email, role);
+        String refreshToken = tokenProvider.generateRefreshToken(userId);
         String redirectUrl = getDashboardUrl(user.getRole());
+        
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setUserId(userId);
+        refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
+        refreshTokenRepository.save(refreshTokenEntity);
         
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
             .id(user.getId())
@@ -88,6 +121,35 @@ public class AuthService {
             .tokenType("Bearer")
             .user(userInfo)
             .redirectUrl(redirectUrl)
+            .build();
+    }
+    
+    @Transactional
+    public LogoutResponse logout(LogoutRequest request) {
+        String refreshToken = request.getRefreshToken();
+        
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            try {
+                String userId = tokenProvider.getUserIdFromToken(refreshToken);
+                tokenBlacklistService.blacklistToken(refreshToken, userId);
+                refreshTokenRepository.deleteByToken(refreshToken);
+                
+                return LogoutResponse.builder()
+                    .success(true)
+                    .message("Logged out successfully")
+                    .build();
+                    
+            } catch (Exception e) {
+                return LogoutResponse.builder()
+                    .success(true)
+                    .message("Logged out successfully")
+                    .build();
+            }
+        }
+        
+        return LogoutResponse.builder()
+            .success(true)
+            .message("Logged out successfully")
             .build();
     }
     

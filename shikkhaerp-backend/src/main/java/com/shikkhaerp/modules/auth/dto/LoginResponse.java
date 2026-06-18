@@ -1,16 +1,11 @@
-
 package com.shikkhaerp.modules.auth.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import com.shikkhaerp.modules.auth.entity.Role;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class LoginResponse {
     private String accessToken;
     private String refreshToken;
@@ -23,13 +18,11 @@ public class LoginResponse {
     
     @Data
     @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class UserInfo {
         private String id;
         private String email;
         private String fullName;
-        private Role role;
+        private Role role;  // Uses auth.entity.Role enum
         private String schoolId;
     }
 }

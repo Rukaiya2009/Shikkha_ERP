@@ -2,7 +2,7 @@ package com.shikkhaerp.modules.auth.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
-import com.shikkhaerp.modules.user.entity.User.UserRole;  // ← USE EXISTING
+import com.shikkhaerp.modules.user.entity.User.UserRole;
 
 @Data
 public class RegisterRequest {
@@ -16,10 +16,11 @@ public class RegisterRequest {
     private String password;
     
     @NotBlank(message = "Full name is required")
-    private String fullName;  // Maps to 'name' in existing User entity
+    private String fullName;
     
     @NotNull(message = "Role is required")
-    private UserRole role;  // USING EXISTING UserRole enum
+    private UserRole role;
     
-    private String schoolId;  // Maps to 'schoolId' in existing User entity
+    // schoolId is OPTIONAL - derived from tenant context
+    private String schoolId;
 }
