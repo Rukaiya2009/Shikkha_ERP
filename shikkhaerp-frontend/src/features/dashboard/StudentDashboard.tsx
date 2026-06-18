@@ -34,7 +34,7 @@ const StudentDashboard: React.FC = () => {
           <p className="text-2xl font-bold">{profile?.attendance || 'N/A'}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border">
-          <p className="text-sm text-gray-500">Overall Grade</p>
+          <p className="text-sm text-gray-500">Overall Marks</p>
           <p className="text-2xl font-bold">{profile?.grade || 'N/A'}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border">
