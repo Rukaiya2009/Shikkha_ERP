@@ -1,24 +1,21 @@
-# Use an official OpenJDK runtime
-FROM openjdk:17-jdk-slim
+# Use Eclipse Temurin (official OpenJDK distribution)
+FROM eclipse-temurin:17-jdk-alpine
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the Maven build file
+# Install Maven (alpine package manager)
+RUN apk add --no-cache maven
+
+# Copy pom.xml first (caches dependencies)
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Install Maven and download dependencies (cached layer)
-RUN apt-get update && apt-get install -y maven && \
-    mvn dependency:go-offline -B
-
-# Copy the source code
+# Copy source and build
 COPY src ./src
-
-# Build the application (skip tests to save time)
 RUN mvn clean package -DskipTests
 
-# Expose the port
+# Expose port
 EXPOSE 8080
 
-# Run the Spring Boot jar
+# Run the jar
 CMD ["java", "-jar", "target/*.jar"]
