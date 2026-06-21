@@ -3,7 +3,6 @@ package com.shikkhaerp.config;
 import com.shikkhaerp.bootstrap.security.JwtAuthenticationFilter;
 import com.shikkhaerp.bootstrap.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +19,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,14 +34,6 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
-
-    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
-    private String allowedOriginsString;
-
-    @PostConstruct
-    public void logCorsOrigins() {
-        log.info("CORS allowed origins: {}", allowedOriginsString);
-    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,8 +53,20 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        // Read from environment variable directly
+        String corsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
+        if (corsEnv == null || corsEnv.trim().isEmpty()) {
+            corsEnv = "http://localhost:5173,http://localhost:3000";
+        }
+        // Split by comma and trim
+        String[] origins = Arrays.stream(corsEnv.split(","))
+                                 .map(String::trim)
+                                 .toArray(String[]::new);
+
+        log.info("CORS allowed origins: {}", Arrays.toString(origins));
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOriginsString.split(",")));
+        configuration.setAllowedOrigins(Arrays.asList(origins));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
