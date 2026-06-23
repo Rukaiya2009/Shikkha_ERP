@@ -1,0 +1,16 @@
+{
+  "school": {
+    "name": "ABC School",
+    "address": "123 Dhaka",
+    "phone": "+880123456789",
+    "email": "info@school.com",
+    "type": "SECONDARY",
+    "numberOfStudents": 500,
+    "numberOfTeachers": 25
+  },
+  "superAdmin": {
+    "name": "John Doe",
+    "email": "john@school.com",
+    "phone": "+880987654321"
+  }
+}
