@@ -22,6 +22,12 @@ public class DemoController {
 
     private final DemoService demoService;
 
+    // ===== TEST ENDPOINT =====
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
+    }
+
     @PostMapping("/request")
     public ResponseEntity<?> submitDemoRequest(@Valid @RequestBody DemoRequestDTO request) {
         try {
