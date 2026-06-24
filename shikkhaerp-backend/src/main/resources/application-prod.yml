@@ -62,3 +62,14 @@ cors:
   allowed-headers: "*"
   allow-credentials: true
   max-age: 3600
+
+  # ... existing config ...
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
