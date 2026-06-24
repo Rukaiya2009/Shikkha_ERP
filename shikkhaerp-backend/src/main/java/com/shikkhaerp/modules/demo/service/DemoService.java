@@ -1,5 +1,3 @@
-//mkdir -p src/main/java/com/shikkhaerp/modules/demo/service
-
 //cat > src/main/java/com/shikkhaerp/modules/demo/service/DemoService.java << 'EOF'
 package com.shikkhaerp.modules.demo.service;
 
@@ -7,7 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
 import com.shikkhaerp.modules.demo.repository.PendingDemoRequestRepository;
+import com.shikkhaerp.modules.school.entity.School;
+import com.shikkhaerp.modules.school.repository.SchoolRepository;
 import com.shikkhaerp.modules.auth.service.EmailService;
+import com.shikkhaerp.modules.auth.service.UserCreationService;
+import com.shikkhaerp.modules.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +25,8 @@ import java.util.UUID;
 public class DemoService {
 
     private final PendingDemoRequestRepository pendingDemoRequestRepository;
+    private final SchoolRepository schoolRepository;
+    private final UserCreationService userCreationService;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
 
@@ -35,12 +39,12 @@ public class DemoService {
     @Value("${app.company.admin.email:admin@shikkhaerp.com}")
     private String companyAdminEmail;
 
+    // ==================== SUBMIT ====================
+
     @Transactional
     public String submitDemoRequest(DemoRequestDTO request) {
-        // Generate unique UUID
         String uuid = "req_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
 
-        // Create pending request
         PendingDemoRequest pendingRequest = new PendingDemoRequest();
         pendingRequest.setUuid(uuid);
         pendingRequest.setSchoolName(request.getSchool().getName());
@@ -56,7 +60,6 @@ public class DemoService {
         pendingRequest.setStatus("PENDING");
         pendingRequest.setExpiresAt(LocalDateTime.now().plusDays(7));
 
-        // Store full request data as JSON
         try {
             pendingRequest.setRequestData(objectMapper.writeValueAsString(request));
         } catch (Exception e) {
@@ -65,20 +68,21 @@ public class DemoService {
 
         pendingDemoRequestRepository.save(pendingRequest);
 
-        // Send confirmation email to the requester
         sendConfirmationEmail(request.getSuperAdmin().getEmail(), request.getSuperAdmin().getName(), request.getSchool().getName());
-
-        // Send notification email to company super admin
         sendNotificationEmail(companyAdminEmail, request, uuid);
 
         log.info("Demo request submitted with UUID: {}", uuid);
         return uuid;
     }
 
+    // ==================== GET ====================
+
     public PendingDemoRequest getPendingRequest(String uuid) {
         return pendingDemoRequestRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("Demo request not found"));
     }
+
+    // ==================== APPROVE ====================
 
     @Transactional
     public void approveRequest(String uuid) {
@@ -94,25 +98,96 @@ public class DemoService {
             throw new RuntimeException("Request has expired");
         }
 
-        // TODO: Create School
-        // TODO: Create Super Admin User
-        // TODO: Generate Subdomain
-        // TODO: Set Trial Period
+        // =============================================
+        // 1. CREATE SCHOOL
+        // =============================================
+        School school = new School();
+        school.setName(request.getSchoolName());
+        school.setAddress(request.getSchoolAddress());
+        school.setPhone(request.getSchoolPhone());
+        school.setEmail(request.getSchoolEmail());
+        school.setStatus(School.SchoolStatus.ACTIVE);
 
-        request.setStatus("APPROVED");
-        request.setApprovedAt(LocalDateTime.now());
-        pendingDemoRequestRepository.save(request);
+        // Generate unique code and subdomain
+        String base = request.getSchoolName().toLowerCase()
+                .replaceAll("[^a-z0-9]", "-")
+                .replaceAll("-+", "-")
+                .trim()
+                .replaceAll("^-|-$", "");
+        String unique = UUID.randomUUID().toString().substring(0, 6);
+        String code = base + "-" + unique;
+        String subdomain = base + "-" + unique;
 
-        // Send approval email to school super admin
-        sendApprovalEmail(
-            request.getSuperAdminEmail(),
-            request.getSuperAdminName(),
-            request.getSchoolName(),
-            "school-" + request.getSchoolName().toLowerCase().replace(" ", "-")
+        // Ensure uniqueness
+        while (schoolRepository.existsByCode(code)) {
+            unique = UUID.randomUUID().toString().substring(0, 6);
+            code = base + "-" + unique;
+            subdomain = base + "-" + unique;
+        }
+
+        school.setCode(code);
+        school.setSubdomain(subdomain);
+
+        // Trial period
+        school.setTrialStart(LocalDateTime.now());
+        school.setTrialEnd(LocalDateTime.now().plusDays(30));
+        school.setSubscriptionPlan("TRIAL");
+        school.setSubscriptionExpiry(LocalDateTime.now().plusDays(30));
+
+        School savedSchool = schoolRepository.save(school);
+
+        // =============================================
+        // 2. CREATE SUPER ADMIN USER
+        // =============================================
+        User superAdmin = userCreationService.createSchoolSuperAdmin(
+                request.getSuperAdminEmail(),
+                request.getSuperAdminName(),
+                request.getSuperAdminPhone(),
+                savedSchool.getId()
         );
 
-        log.info("Demo request approved: {}", uuid);
+        // =============================================
+        // 3. UPDATE PENDING REQUEST
+        // =============================================
+        request.setStatus("APPROVED");
+        request.setApprovedAt(LocalDateTime.now());
+        request.setSchoolId(UUID.fromString(savedSchool.getId()));
+        pendingDemoRequestRepository.save(request);
+
+        // =============================================
+        // 4. SEND APPROVAL EMAIL
+        // =============================================
+        sendApprovalEmail(
+                superAdmin.getEmail(),
+                superAdmin.getName(),
+                savedSchool.getName(),
+                savedSchool.getSubdomain()
+        );
+
+        log.info("Demo request approved: {} | School: {} | Admin: {}",
+                uuid, savedSchool.getName(), superAdmin.getEmail());
     }
+
+    // ==================== REJECT ====================
+
+    @Transactional
+    public void rejectRequest(String uuid, String reason) {
+        PendingDemoRequest request = getPendingRequest(uuid);
+
+        if (!request.isPending()) {
+            throw new RuntimeException("Request is already " + request.getStatus());
+        }
+
+        request.setStatus("REJECTED");
+        request.setRejectedAt(LocalDateTime.now());
+        request.setRejectReason(reason);
+        pendingDemoRequestRepository.save(request);
+
+        sendRejectionEmail(request.getSuperAdminEmail(), request.getSuperAdminName(), request.getSchoolName(), reason);
+        log.info("Demo request rejected: {}", uuid);
+    }
+
+    // ==================== EMAILS ====================
 
     private void sendConfirmationEmail(String to, String name, String schoolName) {
         String subject = "🎉 Demo Request Received – ShikkhaERP";
@@ -123,11 +198,6 @@ public class DemoService {
 
             We have received your demo request for %s. Our team will
             review your application and get back to you within 72 hours.
-
-            📌 What happens next:
-            - Our team will review your request
-            - You'll receive an approval email
-            - You'll get access to your 30-day free trial
 
             If you have any questions, please contact support@shikkhaerp.com
 
@@ -146,17 +216,14 @@ public class DemoService {
 
             A new ShikkhaERP demo request has been submitted.
 
-            📊 Request Details:
-            - School: %s
-            - Super Admin: %s (%s)
-            - Students: %d
-            - Teachers: %d
+            School: %s
+            Super Admin: %s (%s)
+            Students: %d
+            Teachers: %d
 
-            🔗 Click here to review and approve:
-            %s
+            Review and approve: %s
 
             Request ID: %s
-            Submitted: %s
 
             Best regards,
             ShikkhaERP System
@@ -167,8 +234,7 @@ public class DemoService {
             request.getSchool().getNumberOfStudents() != null ? request.getSchool().getNumberOfStudents() : 0,
             request.getSchool().getNumberOfTeachers() != null ? request.getSchool().getNumberOfTeachers() : 0,
             approvalUrl,
-            uuid,
-            LocalDateTime.now()
+            uuid
         );
         emailService.sendEmail(to, subject, body);
         log.info("Notification email sent to: {}", to);
@@ -183,18 +249,14 @@ public class DemoService {
             Congratulations! Your school, %s, has been approved for a
             30-day free trial of ShikkhaERP.
 
-            🔑 Login Details:
             Portal: %s
             Email: %s
 
-            📋 What you can do now:
-            1. Log in using the link above
-            2. Set your password
-            3. Start managing your school!
+            You will set your password during first login.
 
-            ⏳ Trial expires: %s
+            Trial expires: %s
 
-            Need help? Check our documentation or contact support.
+            Need help? Contact support@shikkhaerp.com
 
             Best regards,
             ShikkhaERP Team
@@ -207,5 +269,26 @@ public class DemoService {
         );
         emailService.sendEmail(to, subject, body);
         log.info("Approval email sent to: {}", to);
+    }
+
+    private void sendRejectionEmail(String to, String name, String schoolName, String reason) {
+        String subject = "📋 Demo Request Update – ShikkhaERP";
+        String body = String.format("""
+            Dear %s,
+
+            Thank you for your interest in ShikkhaERP.
+
+            We have reviewed your demo request for %s. Unfortunately,
+            we are unable to proceed with your request at this time.
+
+            Reason: %s
+
+            If you have any questions, please contact support@shikkhaerp.com
+
+            Best regards,
+            ShikkhaERP Team
+            """, name, schoolName, reason);
+        emailService.sendEmail(to, subject, body);
+        log.info("Rejection email sent to: {}", to);
     }
 }

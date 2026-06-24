@@ -40,6 +40,14 @@ public class School {
     
     private Integer establishedYear;
     
+    // ===== NEW FIELDS FOR DEMO WORKFLOW =====
+    @Column(unique = true)
+    private String subdomain;
+    
+    private LocalDateTime trialStart;
+    private LocalDateTime trialEnd;
+    // ========================================
+    
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -50,4 +58,5 @@ public class School {
     public enum SchoolStatus {
         ACTIVE, INACTIVE, SUSPENDED, PENDING
     }
+    
 }
