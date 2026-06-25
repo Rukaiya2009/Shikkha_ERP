@@ -15,7 +15,11 @@ import java.util.Map;
 
 @Slf4j
 @RestController
+<<<<<<< HEAD
 @RequestMapping("/demo")   // ← CHANGED: removed "/api"
+=======
+@RequestMapping("/demo")
+>>>>>>> 129589b9b2b756ca7af3f25dda355cac9bcef6ec
 @RequiredArgsConstructor
 public class DemoController {
 

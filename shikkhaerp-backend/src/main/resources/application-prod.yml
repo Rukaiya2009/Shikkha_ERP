@@ -5,7 +5,7 @@ spring:
     username: postgres.auarlihikwutxylhqyfc
     password: ShikkhaERP2026?
     driver-class-name: org.postgresql.Driver
-    
+
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -16,7 +16,7 @@ spring:
       leak-detection-threshold: 60000
       connection-test-query: SELECT 1
       auto-commit: false
-  
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -34,6 +34,23 @@ spring:
         order_updates: true
     open-in-view: false
 
+  # ===== EMAIL CONFIGURATION =====
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}        # Set this environment variable on Render
+    password: ${EMAIL_PASSWORD}        # Set this environment variable on Render (App Password)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    # ==============================
+
 server:
   port: 8080
   servlet:
@@ -44,11 +61,16 @@ logging:
     com.shikkhaerp: INFO
     org.hibernate.SQL: WARN
     org.springframework.security: INFO
+    org.springframework.mail: DEBUG   # Optional – helps debug email issues
 
 app:
   name: ShikkhaERP
   version: 1.0.0
-  
+
+  base-url: ${BASE_URL:http://localhost:8080}   # Backend URL (for email links)
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}  # Frontend URL for approval links
+
   security:
     jwt:
       secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
@@ -62,8 +84,6 @@ cors:
   allowed-headers: "*"
   allow-credentials: true
   max-age: 3600
-
-  # ... existing config ...
 
 management:
   endpoints:
