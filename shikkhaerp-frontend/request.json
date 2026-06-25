@@ -1,0 +1,16 @@
+{
+  "school": {
+    "name": "Test School",
+    "address": "123 Test",
+    "phone": "+880123456789",
+    "email": "test@school.com",
+    "type": "SECONDARY",
+    "numberOfStudents": 500,
+    "numberOfTeachers": 25
+  },
+  "superAdmin": {
+    "name": "Test Admin",
+    "email": "admin@test.com",
+    "phone": "+880987654321"
+  }
+}
