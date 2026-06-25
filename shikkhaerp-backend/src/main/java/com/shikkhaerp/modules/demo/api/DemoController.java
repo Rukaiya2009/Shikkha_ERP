@@ -2,7 +2,6 @@ package com.shikkhaerp.modules.demo.api;
 
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.dto.DemoRequestResponse;
-import com.shikkhaerp.modules.demo.dto.PendingRequestDTO;
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
 import com.shikkhaerp.modules.demo.service.DemoService;
 import jakarta.validation.Valid;
@@ -16,13 +15,12 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/demo")
+@RequestMapping("/demo")   // ← CHANGED: removed "/api"
 @RequiredArgsConstructor
 public class DemoController {
 
     private final DemoService demoService;
 
-    // ===== TEST ENDPOINT =====
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {
         return ResponseEntity.ok("pong");
@@ -32,14 +30,12 @@ public class DemoController {
     public ResponseEntity<?> submitDemoRequest(@Valid @RequestBody DemoRequestDTO request) {
         try {
             String uuid = demoService.submitDemoRequest(request);
-
             DemoRequestResponse response = DemoRequestResponse.builder()
                     .success(true)
                     .message("Demo request submitted successfully")
                     .requestId(uuid)
                     .email(request.getSuperAdmin().getEmail())
                     .build();
-
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to submit demo request", e);
@@ -54,11 +50,9 @@ public class DemoController {
     public ResponseEntity<?> getPendingRequest(@PathVariable String uuid) {
         try {
             PendingDemoRequest request = demoService.getPendingRequest(uuid);
-
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("data", request);
-
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to fetch pending request", e);
@@ -73,11 +67,9 @@ public class DemoController {
     public ResponseEntity<?> approveRequest(@PathVariable String uuid) {
         try {
             demoService.approveRequest(uuid);
-
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Demo request approved successfully");
-
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to approve request", e);
