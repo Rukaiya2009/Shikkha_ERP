@@ -1,4 +1,4 @@
-package com.shikkhaerp.modules.demo.service;
+package com.shikkhaerp.modules.user.service;
 
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
@@ -6,6 +6,8 @@ import com.shikkhaerp.modules.demo.repository.PendingDemoRequestRepository;
 import com.shikkhaerp.modules.school.entity.School;
 import com.shikkhaerp.modules.school.repository.SchoolRepository;
 import com.shikkhaerp.modules.user.entity.User;
+import com.shikkhaerp.modules.user.entity.User.UserRole;
+import com.shikkhaerp.modules.user.entity.User.UserStatus;
 import com.shikkhaerp.modules.user.repository.UserRepository;
 import com.shikkhaerp.modules.auth.service.EmailService;
 import lombok.RequiredArgsConstructor;
