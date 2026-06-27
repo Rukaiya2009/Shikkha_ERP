@@ -35,11 +35,12 @@ spring:
     open-in-view: false
 
   # ===== EMAIL CONFIGURATION =====
+# ===== EMAIL CONFIGURATION (Zoho Mail) =====
 mail:
-  host: smtp.gmail.com
+  host: smtp.zoho.com
   port: 465
-  username: ${EMAIL_USERNAME}
-  password: ${EMAIL_PASSWORD}
+  username: ${ZOHO_EMAIL}
+  password: ${ZOHO_PASSWORD}
   properties:
     mail:
       smtp:
@@ -51,6 +52,7 @@ mail:
         connectiontimeout: 5000
         timeout: 5000
         writetimeout: 5000
+# =========================================
 # ==============================
 server:
   port: 8080

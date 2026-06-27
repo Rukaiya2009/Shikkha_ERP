@@ -1,10 +1,9 @@
-//cat > test-email.js << 'EOF'
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const msg = {
   to: 'farhanahoque251@gmail.com',
-  from: 'farhanahoque@itdatscience.com',  // ✅ Your verified sender
+  from: 'farhanahoque251@gmail.com', // ← Use your signup email (this is often pre-verified)
   subject: '✅ SendGrid Test – ShikkhaERP',
   text: 'This is a test email from SendGrid!',
   html: '<strong>This is a test email from SendGrid!</strong>',
