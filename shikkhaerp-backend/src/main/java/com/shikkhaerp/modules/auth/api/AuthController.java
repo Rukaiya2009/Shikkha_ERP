@@ -5,6 +5,7 @@ import com.shikkhaerp.modules.auth.dto.LoginResponse;
 import com.shikkhaerp.modules.auth.dto.LogoutRequest;
 import com.shikkhaerp.modules.auth.dto.LogoutResponse;
 import com.shikkhaerp.modules.auth.dto.RegisterRequest;
+import com.shikkhaerp.modules.auth.dto.SetupPasswordRequest;
 import com.shikkhaerp.modules.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,19 @@ public class AuthController {
     public ResponseEntity<?> logout(@Valid @RequestBody LogoutRequest request) {
         try {
             LogoutResponse response = authService.logout(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+
+    @PostMapping("/setup-password")
+    public ResponseEntity<?> setupPassword(@Valid @RequestBody SetupPasswordRequest request) {
+        try {
+            LoginResponse response = authService.setupPassword(request.getEmail(), request.getPassword());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, Object> error = new HashMap<>();

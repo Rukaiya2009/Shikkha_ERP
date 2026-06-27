@@ -123,7 +123,46 @@ public class AuthService {
             .redirectUrl(redirectUrl)
             .build();
     }
-    
+    @Transactional
+    public LoginResponse setupPassword(String email, String newPassword) {
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+    // Encode and set new password
+    user.setPassword(passwordEncoder.encode(newPassword));
+    user.setEnabled(true);
+    user.setStatus(User.UserStatus.ACTIVE);
+    userRepository.save(user);
+
+    // Generate tokens (just like login)
+    String userId = user.getId();
+    String userEmail = user.getEmail();
+    String role = user.getRole().name();
+    String accessToken = tokenProvider.generateToken(userId, userEmail, role);
+    String refreshToken = tokenProvider.generateRefreshToken(userId);
+
+    RefreshToken refreshTokenEntity = new RefreshToken();
+    refreshTokenEntity.setToken(refreshToken);
+    refreshTokenEntity.setUserId(userId);
+    refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
+    refreshTokenRepository.save(refreshTokenEntity);
+
+    LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
+        .id(user.getId())
+        .email(user.getEmail())
+        .fullName(user.getName())
+        .role(convertToAuthRole(user.getRole()))
+        .schoolId(user.getSchoolId())
+        .build();
+
+    return LoginResponse.builder()
+        .accessToken(accessToken)
+        .refreshToken(refreshToken)
+        .tokenType("Bearer")
+        .user(userInfo)
+        .redirectUrl(getDashboardUrl(user.getRole()))
+        .build();
+}
     @Transactional
     public LogoutResponse logout(LogoutRequest request) {
         String refreshToken = request.getRefreshToken();

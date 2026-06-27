@@ -168,7 +168,8 @@ public class User {
         SCHOOL_ADMIN("School Administrator"),
         TEACHER("Teacher"),
         STUDENT("Student"),
-        PARENT("Parent");
+        PARENT("Parent"),
+        DEVELOPER("Developer");
         
         private final String displayName;
         
