@@ -1,4 +1,3 @@
-//cat > src/main/java/com/shikkhaerp/config/SecurityConfig.java << 'EOF'
 package com.shikkhaerp.config;
 
 import com.shikkhaerp.bootstrap.security.JwtAuthenticationFilter;
@@ -43,32 +42,57 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-        .anyRequest().permitAll()
-    )
-            .userDetailsService(customUserDetailsService);
-            // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Commented out for testing
+                // ✅ Public endpoints (no authentication required)
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/api/demo/**",
+                    "/api/health",
+                    "/actuator/health",
+                    "/actuator/info"
+                ).permitAll()
+                // ✅ All other endpoints require authentication
+                .anyRequest().authenticated()
+            )
+            .userDetailsService(customUserDetailsService)
+            // ✅ RE-ENABLE JWT FILTER (UNCOMMENT THIS!)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        // ✅ Hardcode CORS for Vercel (don't rely only on env)
         String corsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
-        if (corsEnv == null || corsEnv.trim().isEmpty()) {
-            corsEnv = "http://localhost:5173,http://localhost:3000";
+        String[] origins;
+        
+        if (corsEnv != null && !corsEnv.trim().isEmpty()) {
+            origins = Arrays.stream(corsEnv.split(","))
+                           .map(String::trim)
+                           .toArray(String[]::new);
+        } else {
+            // ✅ Fallback: hardcode all allowed origins
+            origins = new String[]{
+                "https://shikkha-erp-website.vercel.app",
+                "https://shikkha-erp.vercel.app",
+                "http://localhost:5173",
+                "http://localhost:3000"
+            };
         }
-        String[] origins = Arrays.stream(corsEnv.split(","))
-                                 .map(String::trim)
-                                 .toArray(String[]::new);
 
         log.info("CORS allowed origins: {}", Arrays.toString(origins));
 
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(origins));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", "Content-Type", "Accept", "X-Requested-With",
+            "Access-Control-Allow-Origin", "Access-Control-Allow-Headers",
+            "Access-Control-Allow-Methods", "Access-Control-Allow-Credentials"
+        ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
