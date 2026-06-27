@@ -18,13 +18,12 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({ children, allowe
     return <Navigate to="/login" replace />;
   }
 
-  // Case‑insensitive check – works no matter how allowedRoles are typed
+  // Case‑insensitive check
   const hasAccess = allowedRoles.some(
     (role) => role.toLowerCase() === userRole.toLowerCase()
   );
 
   if (!hasAccess) {
-    // Redirect to home/dashboard instead of a non‑existent /unauthorized page
     return <Navigate to="/" replace />;
   }
 

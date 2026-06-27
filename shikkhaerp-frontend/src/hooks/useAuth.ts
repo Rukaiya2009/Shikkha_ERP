@@ -24,6 +24,7 @@ export const useAuth = () => {
       teacher: '/teacher/dashboard',
       parent: '/parent/dashboard',
       student: '/student/dashboard',
+      developer: '/developer/dashboard',  // NEW
     };
     return dashboards[role] || '/student/dashboard';
   };

@@ -52,14 +52,15 @@ const LoginContainer: React.FC = () => {
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
 
-      let redirectPath = '/student/dashboard';
-      const role = userData.role;
+        let redirectPath = '/student/dashboard';
+        const role = userData.role;
 
-      if (role === 'super_admin') redirectPath = '/super-admin/dashboard';
-      else if (role === 'school_admin') redirectPath = '/school-admin/dashboard';
-      else if (role === 'teacher') redirectPath = '/teacher/dashboard';
-      else if (role === 'parent') redirectPath = '/parent/dashboard';
-      else redirectPath = '/student/dashboard';
+        if (role === 'super_admin') redirectPath = '/super-admin/dashboard';
+        else if (role === 'school_admin') redirectPath = '/school-admin/dashboard';
+        else if (role === 'teacher') redirectPath = '/teacher/dashboard';
+        else if (role === 'parent') redirectPath = '/parent/dashboard';
+        else if (role === 'developer') redirectPath = '/developer/dashboard';  // NEW
+        else redirectPath = '/student/dashboard';
 
       window.location.href = redirectPath;
     } catch (err) {
@@ -99,6 +100,7 @@ const LoginContainer: React.FC = () => {
       else if (role === 'school_admin') redirectPath = '/school-admin/dashboard';
       else if (role === 'teacher') redirectPath = '/teacher/dashboard';
       else if (role === 'parent') redirectPath = '/parent/dashboard';
+      else if (role === 'developer') redirectPath = '/developer/dashboard';  // NEW
       window.location.href = redirectPath;
     } catch (err: any) {
       setSetupError(err.response?.data?.message || 'Failed to set up password. Please try again.');
