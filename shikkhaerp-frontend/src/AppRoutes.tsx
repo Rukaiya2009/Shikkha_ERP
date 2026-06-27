@@ -7,6 +7,10 @@ import SuperAdminDashboard from './features/dashboard/SuperAdminDashboard';
 import AdminDashboard from './features/dashboard/AdminDashboard';
 import TeacherDashboard from './features/dashboard/TeacherDashboard';
 import ParentDashboard from './features/dashboard/ParentDashboard';
+// NEW imports
+import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
+import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
+import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 
 // Get user role from localStorage
 const getUserRole = () => {
@@ -65,6 +69,26 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginContainer />} />
       <Route path="/register" element={<RegisterContainer />} />
+
+      {/* NEW: Approval route for developer (must have DEVELOPER role) */}
+      <Route
+        path="/app/approve/:uuid"
+        element={
+          <RoleBasedRoute allowedRoles={['developer']}>
+            <SchoolCreationPage />
+          </RoleBasedRoute>
+        }
+      />
+
+      {/* NEW: Welcome dashboard for super admin (or school admin) */}
+      <Route
+        path="/welcome"
+        element={
+          <RoleBasedRoute allowedRoles={['super_admin', 'school_admin']}>
+            <WelcomeDashboard />
+          </RoleBasedRoute>
+        }
+      />
 
       {/* All dashboard routes wrapped in DashboardLayout */}
       <Route element={<DashboardLayout />}>
