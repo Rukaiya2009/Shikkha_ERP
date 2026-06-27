@@ -1,3 +1,4 @@
+// src/AppRoutes.tsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginContainer from './features/auth/containers/Login.container';
 import RegisterContainer from './features/auth/containers/Register.container';
@@ -7,10 +8,9 @@ import SuperAdminDashboard from './features/dashboard/SuperAdminDashboard';
 import AdminDashboard from './features/dashboard/AdminDashboard';
 import TeacherDashboard from './features/dashboard/TeacherDashboard';
 import ParentDashboard from './features/dashboard/ParentDashboard';
-// NEW imports
 import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
 import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
-import DeveloperDashboard from './features/dashboard/DeveloperDashboard';
+import DeveloperDashboard from './features/dashboard/DeveloperDashboard'; // NEW
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 
 // Get user role from localStorage
@@ -19,7 +19,7 @@ const getUserRole = () => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      return user.role;
+      return user.role; // e.g. 'super_admin', 'developer' (lowercase)
     } catch (e) {
       return null;
     }
@@ -35,28 +35,19 @@ const isAuthenticated = () => {
 
 const getDashboardPath = (role: string | null) => {
   switch (role) {
-    case 'super_admin':
-      return '/super-admin/dashboard';
-    case 'school_admin':
-      return '/school-admin/dashboard';
-    case 'teacher':
-      return '/teacher/dashboard';
-    case 'parent':
-      return '/parent/dashboard';
-    case 'student':
-      return '/student/dashboard';
-    case 'developer':           // NEW
-      return '/developer/dashboard';
-    default:
-      return '/login';
+    case 'super_admin': return '/super-admin/dashboard';
+    case 'school_admin': return '/school-admin/dashboard';
+    case 'teacher': return '/teacher/dashboard';
+    case 'parent': return '/parent/dashboard';
+    case 'student': return '/student/dashboard';
+    case 'developer': return '/developer/dashboard'; // NEW
+    default: return '/login';
   }
 };
 
 export const AppRoutes = () => {
   const userRole = getUserRole();
   const authenticated = isAuthenticated();
-
-  console.log('AppRoutes - userRole:', userRole, 'authenticated:', authenticated);
 
   if (!authenticated) {
     return (
@@ -73,17 +64,7 @@ export const AppRoutes = () => {
       <Route path="/login" element={<LoginContainer />} />
       <Route path="/register" element={<RegisterContainer />} />
 
-      {/* NEW: Developer Dashboard */}
-      <Route
-        path="/developer/dashboard"
-        element={
-          <RoleBasedRoute allowedRoles={['developer']}>
-            <DeveloperDashboard />
-          </RoleBasedRoute>
-        }
-      />
-
-      {/* Approval route for developer (must have DEVELOPER role) */}
+      {/* Approval route – standalone (no sidebar) */}
       <Route
         path="/app/approve/:uuid"
         element={
@@ -93,7 +74,7 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* Welcome dashboard for super admin (or school admin) */}
+      {/* Welcome route – standalone (no sidebar) */}
       <Route
         path="/welcome"
         element={
@@ -103,15 +84,16 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* All dashboard routes wrapped in DashboardLayout */}
+      {/* ✅ All dashboard routes WITH sidebar/header */}
       <Route element={<DashboardLayout />}>
+        <Route path="/developer/dashboard" element={<DeveloperDashboard />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
         <Route path="/school-admin/dashboard" element={<AdminDashboard />} />
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
         <Route path="/parent/dashboard" element={<ParentDashboard />} />
 
-        {/* Fallback/Compatibility Routes */}
+        {/* Fallbacks */}
         <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>

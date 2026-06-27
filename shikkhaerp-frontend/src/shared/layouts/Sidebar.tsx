@@ -6,6 +6,7 @@ import { SchoolAdminSidebar } from './sidebar/SchoolAdminSidebar';
 import { TeacherSidebar } from './sidebar/TeacherSidebar';
 import { StudentSidebar } from './sidebar/StudentSidebar';
 import { ParentSidebar } from './sidebar/ParentSidebar';
+import { DeveloperSidebar } from './sidebar/DeveloperSidebar'; // NEW
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,14 +15,16 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const role = user?.role || 'STUDENT';
+  const role = user?.role?.toLowerCase() || 'student'; // Force lowercase
 
+  // ✅ Map lowercase roles to their sidebar components
   const sidebarMap: Record<string, React.FC<{ isOpen: boolean; onClose: () => void }>> = {
-    SUPER_ADMIN: SuperAdminSidebar,
-    SCHOOL_ADMIN: SchoolAdminSidebar,
-    TEACHER: TeacherSidebar,
-    STUDENT: StudentSidebar,
-    PARENT: ParentSidebar,
+    super_admin: SuperAdminSidebar,
+    school_admin: SchoolAdminSidebar,
+    teacher: TeacherSidebar,
+    student: StudentSidebar,
+    parent: ParentSidebar,
+    developer: DeveloperSidebar, // NEW
   };
 
   const SidebarComponent = sidebarMap[role] || StudentSidebar;
