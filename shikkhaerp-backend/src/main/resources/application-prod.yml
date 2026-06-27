@@ -1,11 +1,14 @@
-spring:
-  datasource:
-    # Use the pooler (IPv4) for Render compatibility
-    url: jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
-    username: postgres.auarlihikwutxylhqyfc
-    password: ShikkhaERP2026?
-    driver-class-name: org.postgresql.Driver
+# =============================================
+# SHIKKHAERP - Production Configuration
+# =============================================
 
+spring:
+  # Database Configuration
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db.auarlihikwutxylhqyfc.supabase.co:5432/postgres?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:ShikkhaERP2026}
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -17,11 +20,10 @@ spring:
       connection-test-query: SELECT 1
       auto-commit: false
 
+  # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
@@ -34,53 +36,56 @@ spring:
         order_updates: true
     open-in-view: false
 
-  # ===== EMAIL CONFIGURATION =====
-# ===== EMAIL CONFIGURATION (Zoho Mail) =====
-mail:
-  host: smtp.zoho.com
-  port: 465
-  username: ${ZOHO_EMAIL}
-  password: ${ZOHO_PASSWORD}
-  properties:
-    mail:
-      smtp:
-        auth: true
-        ssl:
-          enable: true
-        starttls:
-          enable: false
-        connectiontimeout: 5000
-        timeout: 5000
-        writetimeout: 5000
-# =========================================
-# ==============================
+  # ✅ EMAIL CONFIGURATION (ZOHO SMTP)
+  mail:
+    host: smtp.zoho.com
+    port: 465
+    username: shikkhaerp@zohomail.com
+    password: @Zoho*63?
+    protocol: smtps
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
+  compression:
+    enabled: true
 
 logging:
   level:
     com.shikkhaerp: INFO
-    org.hibernate.SQL: WARN
+    org.springframework.mail: DEBUG
     org.springframework.security: INFO
-    org.springframework.mail: DEBUG   # Optional – helps debug email issues
 
 app:
   name: ShikkhaERP
   version: 1.0.0
-
-  base-url: ${BASE_URL:http://localhost:8080}   # Backend URL (for email links)
+  base-url: ${BASE_URL:https://shikkha-erp.onrender.com}
   frontend:
-    url: ${FRONTEND_URL:http://localhost:5173}  # Frontend URL for approval links
-
+    url: ${FRONTEND_URL:https://shikkha-erp.vercel.app}
+  company:
+    admin:
+      email: ${COMPANY_ADMIN_EMAIL:admin@shikkhaerp.com}
+  
   security:
     jwt:
-      secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
       expiration: 86400000
       refresh-expiration: 604800000
 
-# CORS configuration – uses environment variable CORS_ALLOWED_ORIGINS if set
 cors:
   allowed-origins:
     - "https://shikkha-erp-website.vercel.app"
