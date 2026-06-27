@@ -41,7 +41,7 @@ spring:
     host: smtp.zoho.com
     port: 465
     username: shikkhaerp@zohomail.com
-    password: @Zoho*63?
+    password: "@Zoho*63?"
     protocol: smtps
     default-encoding: UTF-8
     properties:
