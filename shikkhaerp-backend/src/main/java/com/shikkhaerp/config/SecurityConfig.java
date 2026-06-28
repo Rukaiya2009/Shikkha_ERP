@@ -54,7 +54,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .userDetailsService(customUserDetailsService)
-            // ✅ RE-ENABLE JWT FILTER (UNCOMMENT THIS!)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -62,7 +61,6 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        // ✅ Hardcode CORS for Vercel (don't rely only on env)
         String corsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
         String[] origins;
         
@@ -71,10 +69,12 @@ public class SecurityConfig {
                            .map(String::trim)
                            .toArray(String[]::new);
         } else {
-            // ✅ Fallback: hardcode all allowed origins
+            // ✅ CORRECTED: Match the ACTUAL frontend URL (shikka with 2 k's)
             origins = new String[]{
-                "https://shikkha-erp-website.vercel.app",
-                "https://shikkha-erp.vercel.app",
+                "https://shikka-erp-website.vercel.app",    // ✅ ACTUAL URL (2 k's)
+                "https://shikka-erp.vercel.app",            // ✅ ACTUAL URL (2 k's)
+                "https://shikkha-erp-website.vercel.app",   // ✅ Backup (3 k's)
+                "https://shikha-erp-website.vercel.app",    // ✅ Backup (1 k)
                 "http://localhost:5173",
                 "http://localhost:3000"
             };
