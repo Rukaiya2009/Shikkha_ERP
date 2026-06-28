@@ -70,14 +70,15 @@ public class SecurityConfig {
                            .toArray(String[]::new);
         } else {
             // ✅ CORRECTED: Match the ACTUAL frontend URL (shikka with 2 k's)
-            origins = new String[]{
-                "https://shikka-erp-website.vercel.app",    // ✅ ACTUAL URL (2 k's)
-                "https://shikka-erp.vercel.app",            // ✅ ACTUAL URL (2 k's)
-                "https://shikkha-erp-website.vercel.app",   // ✅ Backup (3 k's)
-                "https://shikha-erp-website.vercel.app",    // ✅ Backup (1 k)
-                "http://localhost:5173",
-                "http://localhost:3000"
-            };
+                origins = new String[]{
+        "https://shikka-erp-website.vercel.app",
+        "https://shikka-erp-website-*.vercel.app",    // ✅ ADD THIS - matches all previews
+        "https://shikka-erp.vercel.app",
+        "https://shikka-erp-*.vercel.app",            // ✅ ADD THIS - matches all previews
+        "https://shikkha-erp.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    };
         }
 
         log.info("CORS allowed origins: {}", Arrays.toString(origins));
