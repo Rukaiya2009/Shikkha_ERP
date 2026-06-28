@@ -1,9 +1,7 @@
 package com.shikkhaerp.modules.demo.api;
 
-import com.shikkhaerp.modules.demo.dto.ApprovalResponseDTO;
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.dto.DemoRequestResponse;
-import com.shikkhaerp.modules.demo.dto.RejectionRequestDTO;
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
 import com.shikkhaerp.modules.demo.service.DemoService;
 import jakarta.validation.Valid;
@@ -13,7 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/demo")
@@ -23,56 +22,84 @@ public class DemoController {
 
     private final DemoService demoService;
 
-    /**
-     * 1. Submit a new demo request
-     * POST /api/demo/submit
-     */
-    @PostMapping("/submit")
-    public ResponseEntity<DemoRequestResponse> submitDemoRequest(@Valid @RequestBody DemoRequestDTO request) {
+    // ==================== SUBMIT ====================
+    @PostMapping("/request")   // ✅ original path
+    public ResponseEntity<?> submitDemoRequest(@Valid @RequestBody DemoRequestDTO request) {
         log.info("📝 Demo submission request received for school: {}", request.getSchool().getName());
-        String uuid = demoService.submitDemoRequest(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(DemoRequestResponse.builder()
-                        .uuid(uuid)
-                        .message("Demo request submitted successfully")
-                        .status("PENDING")
-                        .build());
+        try {
+            String uuid = demoService.submitDemoRequest(request);
+            DemoRequestResponse response = DemoRequestResponse.builder()
+                    .success(true)
+                    .message("Demo request submitted successfully")
+                    .requestId(uuid)           // ✅ fixed field name
+                    .email(request.getSuperAdmin().getEmail())
+                    .build();
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Failed to submit: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
-    /**
-     * 2. Get pending demo request by UUID
-     * GET /api/demo/{uuid}
-     */
-    @GetMapping("/{uuid}")
-    public ResponseEntity<PendingDemoRequest> getPendingRequest(@PathVariable String uuid) {
+    // ==================== GET PENDING REQUEST ====================
+    @GetMapping("/request/{uuid}")   // ✅ original path
+    public ResponseEntity<?> getPendingRequest(@PathVariable String uuid) {
         log.info("🔍 Fetching demo request: {}", uuid);
-        PendingDemoRequest request = demoService.getPendingRequest(uuid);
-        return ResponseEntity.ok(request);
+        try {
+            PendingDemoRequest request = demoService.getPendingRequest(uuid);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
-    /**
-     * 3. ✅ APPROVE a demo request - Creates school, user, tenant
-     * POST /api/demo/approve/{uuid}
-     * Priority: P0
-     */
-    @PostMapping("/approve/{uuid}")
-    public ResponseEntity<ApprovalResponseDTO> approveApplication(@PathVariable UUID uuid) {
-        log.info("✅ Approve request received for UUID: {}", uuid);
-        ApprovalResponseDTO response = demoService.approveApplication(uuid);
-        return ResponseEntity.ok(response);
+    // ==================== APPROVE ====================
+    @PostMapping("/approve/{uuid}")   // ✅ original path
+    public ResponseEntity<?> approveRequest(@PathVariable String uuid) {
+        log.info("✅ Approving demo request: {}", uuid);
+        try {
+            demoService.approveRequest(uuid);   // ✅ service expects String
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "✅ Demo request approved successfully");
+            response.put("requestId", uuid);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Failed to approve: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
-    /**
-     * 4. ❌ REJECT a demo request - Deletes pending record
-     * POST /api/demo/reject/{uuid}
-     * Priority: P1
-     */
-    @PostMapping("/reject/{uuid}")
-    public ResponseEntity<Void> rejectApplication(
-            @PathVariable UUID uuid,
-            @Valid @RequestBody RejectionRequestDTO rejectionRequest) {
-        log.info("❌ Reject request received for UUID: {}", uuid);
-        demoService.rejectApplication(uuid, rejectionRequest.getReason());
-        return ResponseEntity.ok().build();
+    // ==================== REJECT ====================
+    @PostMapping("/reject/{uuid}")   // ✅ original path
+    public ResponseEntity<?> rejectRequest(
+            @PathVariable String uuid,
+            @RequestBody(required = false) Map<String, String> body) {
+        log.info("❌ Rejecting demo request: {}", uuid);
+        try {
+            String reason = body != null ? body.getOrDefault("reason", "No reason provided") : "No reason provided";
+            demoService.rejectRequest(uuid, reason);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "❌ Demo request rejected successfully");
+            response.put("requestId", uuid);
+            response.put("reason", reason);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", "Failed to reject: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 }
