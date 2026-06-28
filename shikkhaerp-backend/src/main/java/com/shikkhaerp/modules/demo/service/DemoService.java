@@ -1,5 +1,6 @@
 package com.shikkhaerp.modules.demo.service;
 
+import com.shikkhaerp.modules.demo.dto.ApprovalResponseDTO;
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
 import com.shikkhaerp.modules.demo.repository.PendingDemoRequestRepository;
@@ -24,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DemoService {
 
-    // Status constants (since PendingDemoRequest uses String status)
+    // Status constants
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_APPROVED = "APPROVED";
     private static final String STATUS_REJECTED = "REJECTED";
@@ -65,8 +66,8 @@ public class DemoService {
         entity.setSuperAdminName(request.getSuperAdmin().getName());
         entity.setSuperAdminEmail(request.getSuperAdmin().getEmail());
         entity.setSuperAdminPhone(request.getSuperAdmin().getPhone());
-        entity.setStatus(STATUS_PENDING);          // ✅ fixed: use string constant
-        entity.setExpiresAt(LocalDateTime.now().plusDays(7));
+        entity.setStatus(STATUS_PENDING);
+        entity.setExpiresAt(LocalDateTime.now().plusDays(7));  // ✅ FIXED: removed "days:"
         entity.setCreatedAt(LocalDateTime.now());
 
         PendingDemoRequest saved = pendingDemoRequestRepository.save(entity);
@@ -111,7 +112,6 @@ public class DemoService {
     public void approveRequest(String uuid) {
         PendingDemoRequest request = getPendingRequest(uuid);
 
-        // ✅ fixed: use string constants
         if (!STATUS_PENDING.equals(request.getStatus())) {
             throw new RuntimeException("Request is already " + request.getStatus());
         }
@@ -159,15 +159,12 @@ public class DemoService {
         log.info("🏫 School created: {} (ID: {})", savedSchool.getName(), savedSchool.getId());
 
         // 2. CREATE SUPER ADMIN USER
-        // No temporary password – they will set password via frontend link
         User superAdmin = new User();
         superAdmin.setEmail(request.getSuperAdminEmail());
         superAdmin.setName(request.getSuperAdminName());
         superAdmin.setPhone(request.getSuperAdminPhone());
-        // Set a placeholder password (won't be used because they set their own via /auth/setup-password)
         superAdmin.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         superAdmin.setRole(User.UserRole.SUPER_ADMIN);
-        // ✅ fixed: schoolId is String, so set directly
         superAdmin.setSchoolId(savedSchool.getId());
         superAdmin.setEnabled(true);
         superAdmin.setStatus(User.UserStatus.ACTIVE);
@@ -178,11 +175,10 @@ public class DemoService {
         // 3. UPDATE PENDING REQUEST
         request.setStatus(STATUS_APPROVED);
         request.setApprovedAt(LocalDateTime.now());
-        // PendingDemoRequest.schoolId is UUID, so convert
         request.setSchoolId(UUID.fromString(savedSchool.getId()));
         pendingDemoRequestRepository.save(request);
 
-        // 4. SEND APPROVAL EMAIL (with link to frontend login page)
+        // 4. SEND APPROVAL EMAIL
         try {
             sendApprovalEmail(
                 superAdmin.getEmail(),
@@ -226,6 +222,32 @@ public class DemoService {
         log.info("❌ Demo request rejected: {}", uuid);
     }
 
+    // ===================== WRAPPER METHODS FOR UUID ENDPOINTS =====================
+
+    @Transactional
+    public ApprovalResponseDTO approveApplication(UUID uuid) {
+        log.info("🔄 Processing approval for UUID: {}", uuid);
+        approveRequest(uuid.toString());
+        
+        PendingDemoRequest request = getPendingRequest(uuid.toString());
+        String schoolId = request.getSchoolId() != null ? request.getSchoolId().toString() : null;
+        
+        return ApprovalResponseDTO.builder()
+            .status(STATUS_APPROVED)
+            .message("School, user, and tenant created successfully")
+            .tenantId(schoolId)
+            .schoolId(schoolId)
+            .userId(null)
+            .processedAt(LocalDateTime.now())
+            .build();
+    }
+
+    @Transactional
+    public void rejectApplication(UUID uuid, String reason) {
+        log.info("🔄 Processing rejection for UUID: {}", uuid);
+        rejectRequest(uuid.toString(), reason);
+    }
+
     // ===================== EMAIL HELPERS =====================
 
     private void sendConfirmationEmail(String to, String name, String schoolName) {
@@ -244,7 +266,6 @@ public class DemoService {
             ShikkhaERP Team
             """, name, schoolName);
         
-        // ✅ fixed: use sendEmail (not sendHtmlEmail)
         emailService.sendEmail(to, subject, body);
         log.info("📧 Confirmation email sent to: {}", to);
     }
@@ -299,7 +320,6 @@ public class DemoService {
         log.info("📧 Notification email sent to admin: {}", to);
     }
 
-    // ✅ CORRECTED: Send link to frontend login with email param, no temporary password
     private void sendApprovalEmail(String to, String name, String schoolName) {
         String subject = "🎉 Your School is Approved – Set Up Your Admin Account";
         String loginUrl = frontendUrl + "/login?email=" + to;
