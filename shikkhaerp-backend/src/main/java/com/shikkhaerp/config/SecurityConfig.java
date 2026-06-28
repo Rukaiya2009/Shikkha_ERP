@@ -45,7 +45,7 @@ public class SecurityConfig {
                 // ✅ Public endpoints (no authentication required)
                 .requestMatchers(
                     "/api/auth/**",
-                    "/api/demo/**",
+                    "/api/demo/**",        // ✅ ALL demo endpoints are public
                     "/api/health",
                     "/actuator/health",
                     "/actuator/info"
@@ -69,16 +69,16 @@ public class SecurityConfig {
                            .map(String::trim)
                            .toArray(String[]::new);
         } else {
-            // ✅ CORRECTED: Match the ACTUAL frontend URL (shikka with 2 k's)
-                origins = new String[]{
-        "https://shikka-erp-website.vercel.app",
-        "https://shikka-erp-website-*.vercel.app",    // ✅ ADD THIS - matches all previews
-        "https://shikka-erp.vercel.app",
-        "https://shikka-erp-*.vercel.app",            // ✅ ADD THIS - matches all previews
-        "https://shikkha-erp.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000"
-    };
+            // ✅ CORS allowed origins (frontend URLs)
+            origins = new String[]{
+                "https://shikka-erp-website.vercel.app",
+                "https://shikka-erp-website-*.vercel.app",
+                "https://shikka-erp.vercel.app",
+                "https://shikka-erp-*.vercel.app",
+                "https://shikkha-erp.vercel.app",
+                "http://localhost:5173",
+                "http://localhost:3000"
+            };
         }
 
         log.info("CORS allowed origins: {}", Arrays.toString(origins));
