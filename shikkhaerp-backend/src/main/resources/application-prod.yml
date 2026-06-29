@@ -100,3 +100,69 @@ cors:
     - "*"
   allow-credentials: true
   max-age: 3600
+
+# =============================================
+# DEMO REQUEST EMAIL TEMPLATES
+# =============================================
+demo:
+  email:
+    from: ${ZOHO_EMAIL}
+    subject:
+      submission: "Demo Request Received - ShikkhaERP"
+      approval: "Demo Request Approved - ShikkhaERP"
+      rejection: "Demo Request Status Update - ShikkhaERP"
+    templates:
+      submission: |
+        Dear {{name}},
+        
+        Thank you for your interest in ShikkhaERP!
+        
+        We have received your demo request for {{schoolName}}.
+        Your request ID is: {{requestId}}
+        
+        Our team will review your request and get back to you within 24-48 hours.
+        
+        Best regards,
+        ShikkhaERP Team
+        
+        Need help? Contact us at support@shikkhaerp.com
+        
+      approval: |
+        Dear {{name}},
+        
+        Congratulations! Your demo request for {{schoolName}} has been APPROVED.
+        
+        Your temporary login credentials:
+        URL: {{baseUrl}}
+        Email: {{email}}
+        Password: {{password}}
+        
+        Please login and change your password immediately.
+        
+        Best regards,
+        ShikkhaERP Team
+        
+      rejection: |
+        Dear {{name}},
+        
+        Thank you for your interest in ShikkhaERP.
+        
+        We regret to inform you that your demo request for {{schoolName}} has been REJECTED.
+        
+        Reason: {{reason}}
+        
+        If you have any questions, please contact us at support@shikkhaerp.com
+        
+        Best regards,
+        ShikkhaERP Team
+
+# =============================================
+# ADMIN NOTIFICATION
+# =============================================
+notification:
+  admin:
+    email: ${COMPANY_ADMIN_EMAIL}
+    enabled: true
+    on-demo-request: true
+    on-demo-approval: true
+    on-demo-rejection: true
