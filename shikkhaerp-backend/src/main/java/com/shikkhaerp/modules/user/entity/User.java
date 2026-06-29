@@ -18,80 +18,112 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "users")
+@Table(name = "app_users")  // ← CHANGED from "users" to "app_users"
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
     private String id;
     
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, name = "email")
     private String email;
     
     @NotBlank(message = "Password is required")
-    @Column(nullable = false)
+    @Column(nullable = false, name = "password")
     private String password;
     
     @NotBlank(message = "Name is required")
     @Size(max = 100)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "name")
     private String name;
     
+    @Column(name = "phone")
     private String phone;
+    
+    @Column(name = "address")
     private String address;
+    
+    @Column(name = "profile_image")
     private String profileImage;
     
     @Enumerated(EnumType.STRING)
+    @Column(name = "role")
     private UserRole role;
     
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private UserStatus status;
     
+    @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+    
+    @Column(name = "last_login_ip")
     private String lastLoginIp;
+    
+    @Column(name = "last_login_user_agent")
     private String lastLoginUserAgent;
     
+    @Column(name = "email_verified")
     private boolean emailVerified = true;
+    
+    @Column(name = "email_verification_token")
     private String emailVerificationToken;
+    
+    @Column(name = "email_verification_token_expiry")
     private LocalDateTime emailVerificationTokenExpiry;
     
+    @Column(name = "phone_verified")
     private boolean phoneVerified = false;
+    
+    @Column(name = "enabled")
     private boolean enabled = true;
     
+    @Column(name = "login_attempts")
     private Integer loginAttempts = 0;
+    
+    @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
     
+    @Column(name = "school_id")
     private String schoolId;
+    
+    @Column(name = "tenant_id")
     private String tenantId;
     
     @CreatedDate
-    @Column(updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
     @LastModifiedDate
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
     @CreatedBy
-    @Column(updatable = false)
+    @Column(name = "created_by", updatable = false)
     private String createdBy;
     
     @LastModifiedBy
+    @Column(name = "updated_by")
     private String updatedBy;
     
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+    
+    @Column(name = "deleted_by")
     private String deletedBy;
     
     @Version
+    @Column(name = "version")
     private Long version = 0L;
     
     // ============ COMPATIBILITY GETTERS FOR EXISTING CODE ============
     
     /**
      * Compatibility method - returns name field
-     * Used by: UserService, DemoService, TeacherMapper, etc.
      */
     public String getName() {
         return this.name;
@@ -106,7 +138,6 @@ public class User {
     
     /**
      * Compatibility method - returns email field
-     * Used by: CustomUserDetailsService, UserService, etc.
      */
     public String getEmail() {
         return this.email;
@@ -114,7 +145,6 @@ public class User {
     
     /**
      * Compatibility method - returns password field
-     * Used by: CustomUserDetailsService, PasswordService
      */
     public String getPassword() {
         return this.password;
@@ -122,7 +152,6 @@ public class User {
     
     /**
      * Compatibility method - returns role field
-     * Used by: CustomUserDetailsService, UserService
      */
     public UserRole getRole() {
         return this.role;
@@ -130,7 +159,6 @@ public class User {
     
     /**
      * Compatibility method - returns status field
-     * Used by: UserService
      */
     public UserStatus getStatus() {
         return this.status;
@@ -138,7 +166,6 @@ public class User {
     
     /**
      * Compatibility method - returns phone field
-     * Used by: UserService
      */
     public String getPhone() {
         return this.phone;
@@ -146,7 +173,6 @@ public class User {
     
     /**
      * Compatibility method - returns address field
-     * Used by: UserService
      */
     public String getAddress() {
         return this.address;
@@ -154,7 +180,6 @@ public class User {
     
     /**
      * Compatibility method - checks if user is enabled
-     * Used by: CustomUserDetailsService
      */
     public boolean isEnabled() {
         return this.enabled && this.status == UserStatus.ACTIVE;
@@ -162,7 +187,6 @@ public class User {
     
     /**
      * Compatibility method - gets ID as Long (for backward compatibility)
-     * Returns null if ID is not a number
      */
     public Long getId() {
         try {
@@ -220,7 +244,7 @@ public class User {
         this.updatedAt = updatedAt;
     }
     
-    // ============ EXISTING METHODS (unchanged) ============
+    // ============ EXISTING METHODS ============
     
     @PrePersist
     protected void onCreate() {
@@ -234,7 +258,7 @@ public class User {
         emailVerified = true;
         enabled = true;
         status = UserStatus.ACTIVE;
-        phoneVerified = false;  // <-- ADDED THIS LINE
+        phoneVerified = false;
     }
     
     @PreUpdate
