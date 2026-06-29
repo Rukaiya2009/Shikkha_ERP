@@ -20,19 +20,21 @@ public class DatabaseSeeder implements CommandLineRunner {
     public void run(String... args) {
         String devEmail = "farhanahoque251@gmail.com";
 
-        if (!userRepository.existsByEmail(devEmail)) {
-            User dev = new User();
-            dev.setEmail(devEmail);
-            dev.setName("Developer User");
-            dev.setPassword(passwordEncoder.encode("Dev@123456")); // temporary – change after first login
-            dev.setRole(User.UserRole.DEVELOPER);
-            dev.setSchoolId(null);
-            dev.setEnabled(true);
-            dev.setStatus(User.UserStatus.ACTIVE);
-            userRepository.save(dev);
-            log.info("✅ Developer user seeded: {}", devEmail);
-        } else {
-            log.info("👤 Developer user already exists");
+        // Skip if user already exists
+        if (userRepository.existsByEmail(devEmail)) {
+            log.info("👤 Developer user already exists – skipping seed");
+            return;
         }
+
+        User dev = new User();
+        dev.setEmail(devEmail);
+        dev.setName("Developer User");
+        dev.setPassword(passwordEncoder.encode("Dev@123456")); // temporary – change after first login
+        dev.setRole(User.UserRole.DEVELOPER);
+        dev.setSchoolId(null);
+        dev.setEnabled(true);
+        dev.setStatus(User.UserStatus.ACTIVE);
+        userRepository.save(dev);
+        log.info("✅ Developer user seeded: {}", devEmail);
     }
 }
