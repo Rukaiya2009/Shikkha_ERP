@@ -1,3 +1,4 @@
+//cat > src/main/java/com/shikkhaerp/modules/auth/dto/LoginResponse.java << 'EOF'
 package com.shikkhaerp.modules.auth.dto;
 
 import lombok.Builder;
