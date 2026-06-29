@@ -234,6 +234,7 @@ public class User {
         emailVerified = true;
         enabled = true;
         status = UserStatus.ACTIVE;
+        phoneVerified = false;  // <-- ADDED THIS LINE
     }
     
     @PreUpdate
