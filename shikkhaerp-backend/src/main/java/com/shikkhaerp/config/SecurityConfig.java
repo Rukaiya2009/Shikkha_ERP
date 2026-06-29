@@ -74,8 +74,7 @@ public class SecurityConfig {
                 "https://shikka-erp-website.vercel.app",
                 "https://shikka-erp-website-*.vercel.app",
                 "https://shikka-erp.vercel.app",
-                "https://shikka-erp-*.vercel.app",
-                "https://shikkha-erp.vercel.app",
+                "https://shikka-erp-*.vercel.app",  
                 "http://localhost:5173",
                 "http://localhost:3000"
             };
