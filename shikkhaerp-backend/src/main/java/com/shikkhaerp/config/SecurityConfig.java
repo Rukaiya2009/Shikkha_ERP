@@ -35,13 +35,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable())  // CSRF is already disabled
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/public/**",
-                    "/api/demo/**",
+                    "/api/demo/**",          // ← ALL /api/demo/* endpoints are public
                     "/actuator/health",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
