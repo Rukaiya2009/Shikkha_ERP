@@ -1,88 +1,102 @@
-// src/main/java/com/shikkhaerp/modules/demo/entity/PendingDemoRequest.java
+//cat > src/main/java/com/shikkhaerp/modules/demo/entity/PendingDemoRequest.java << 'EOF'
 package com.shikkhaerp.modules.demo.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "pending_demo_requests")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "pending_demo_requests")
 public class PendingDemoRequest {
-    
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(unique = true, nullable = false, length = 255)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(unique = true, nullable = false)
     private String uuid;
-    
-    @Column(name = "school_name", nullable = false, length = 255)
+
+    @Column(name = "school_name", nullable = false)
     private String schoolName;
-    
-    @Column(name = "school_address", nullable = false, columnDefinition = "TEXT")
+
+    @Column(name = "school_address")
     private String schoolAddress;
-    
-    @Column(name = "school_phone", length = 50)
+
+    @Column(name = "school_phone")
     private String schoolPhone;
-    
-    @Column(name = "school_email", length = 255)
+
+    @Column(name = "school_email")
     private String schoolEmail;
-    
-    @Column(name = "school_type", length = 50)
+
+    @Column(name = "school_type")
     private String schoolType;
-    
+
     @Column(name = "number_of_students")
     private Integer numberOfStudents;
-    
+
     @Column(name = "number_of_teachers")
     private Integer numberOfTeachers;
-    
-    @Column(name = "super_admin_name", nullable = false, length = 255)
+
+    @Column(name = "super_admin_name", nullable = false)
     private String superAdminName;
-    
-    @Column(name = "super_admin_email", nullable = false, length = 255)
+
+    @Column(name = "super_admin_email", nullable = false)
     private String superAdminEmail;
-    
-    @Column(name = "super_admin_phone", length = 50)
+
+    @Column(name = "super_admin_phone")
     private String superAdminPhone;
-    
-    @Column(nullable = false, length = 50)
-    private String status;
-    
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-    
+
+    @Column(name = "status")
+    private String status = "PENDING";
+
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
-    
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
-    
+
     @Column(name = "rejected_at")
     private LocalDateTime rejectedAt;
-    
-    @Column(name = "reject_reason", columnDefinition = "TEXT")
-    private String rejectReason;
-    
+
     @Column(name = "school_id")
     private UUID schoolId;
-    
-    public boolean isExpired() {
-        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
-    }
-    
+
+    @Column(name = "reject_reason")
+    private String rejectReason;
+
+    @Column(name = "request_data", columnDefinition = "jsonb")
+    private String requestData;
+
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        status = "PENDING";
-        if (uuid == null || uuid.isEmpty()) {
-            uuid = "req_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        }
+        if (status == null) status = "PENDING";
+        if (expiresAt == null) expiresAt = LocalDateTime.now().plusDays(7);
+    }
+
+    public boolean isPending() {
+        return "PENDING".equals(status);
+    }
+
+    public boolean isExpired() {
+        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
     }
 }

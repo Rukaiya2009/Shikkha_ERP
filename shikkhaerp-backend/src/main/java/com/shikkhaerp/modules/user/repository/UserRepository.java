@@ -88,4 +88,64 @@ public interface UserRepository extends JpaRepository<User, String> {
     // ===== Check if email is verified =====
     
     boolean existsByEmailAndEmailVerifiedTrue(String email);
+    
+    // ===== ADD THESE METHODS FOR COMPATIBILITY =====
+    
+    /**
+     * Find user by email - used by CustomUserDetailsService
+     */
+    Optional<User> findUserByEmail(String email);
+    
+    /**
+     * Count active users (for dashboard)
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.status = 'ACTIVE'")
+    long countActiveUsers();
+    
+    /**
+     * Get users by status with custom sorting
+     */
+    @Query("SELECT u FROM User u WHERE u.status = :status ORDER BY u.createdAt DESC")
+    List<User> findByStatusOrderByCreatedAtDesc(@Param("status") User.UserStatus status);
+    
+    /**
+     * Find users with specific role (used by UserService for role-based operations)
+     */
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.status = 'ACTIVE'")
+    List<User> findActiveUsersByRole(@Param("role") User.UserRole role);
+    
+    /**
+     * Count users by school (if schoolId is not null)
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.schoolId IS NOT NULL")
+    long countUsersWithSchool();
+    
+    /**
+     * Count users by status and role combination
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.status = :status AND u.role = :role")
+    long countByStatusAndRole(@Param("status") User.UserStatus status, @Param("role") User.UserRole role);
+    
+    /**
+     * Find users with login attempts exceeded (for security)
+     */
+    @Query("SELECT u FROM User u WHERE u.loginAttempts >= 5 AND u.lockedUntil IS NOT NULL")
+    List<User> findLockedUsers();
+    
+    /**
+     * Search users by name or email (used by UserService)
+     */
+    @Query("SELECT u FROM User u WHERE " +
+           "(:keyword IS NULL OR LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:role IS NULL OR u.role = :role) AND " +
+           "(:status IS NULL OR u.status = :status) AND " +
+           "(:schoolId IS NULL OR u.schoolId = :schoolId)")
+    Page<User> findUsersWithFilters(
+            @Param("keyword") String keyword,
+            @Param("role") User.UserRole role,
+            @Param("status") User.UserStatus status,
+            @Param("schoolId") String schoolId,
+            Pageable pageable
+    );
 }

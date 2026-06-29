@@ -1,4 +1,3 @@
-//cat > src/main/java/com/shikkhaerp/modules/auth/api/SecurityAuditController.java << 'EOF'
 package com.shikkhaerp.modules.auth.api;
 
 import com.shikkhaerp.modules.auth.dto.AuditDTO;
@@ -14,8 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -27,124 +26,93 @@ public class SecurityAuditController {
     private final AccountLockService accountLockService;
     private final AuditService auditService;
 
-    // ==================== LOGIN HISTORY ENDPOINTS ====================
+    // ==================== SECURITY EVENTS ENDPOINTS ====================
 
-    @GetMapping("/login-history/user/{userId}")
-    public ResponseEntity<List<SecurityDTO>> getUserLoginHistory(@PathVariable String userId) {
-        var history = securityService.getUserLoginHistory(userId);
-        var dtos = history.stream()
-            .map(h -> SecurityDTO.builder()
-                .userId(h.getUserId())
-                .email(h.getEmail())
-                .ipAddress(h.getIpAddress())
-                .userAgent(h.getUserAgent())
-                .eventTime(h.getLoginTime())
-                .description(h.isSuccess() ? "Login successful" : "Login failed: " + h.getFailureReason())
-                .severity(h.isSuccess() ? "INFO" : "WARNING")
-                .build())
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    @GetMapping("/events/user/{userId}")
+    public ResponseEntity<List<SecurityDTO>> getUserSecurityEvents(@PathVariable String userId) {
+        List<SecurityDTO> events = securityService.getUserSecurityEvents(userId);
+        return ResponseEntity.ok(events);
     }
 
-    @GetMapping("/login-history/date-range")
-    public ResponseEntity<List<SecurityDTO>> getLoginHistoryByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        // Note: Add date range method to SecurityService if needed
-        return ResponseEntity.ok(List.of());
+    @GetMapping("/events/recent")
+    public ResponseEntity<List<SecurityDTO>> getRecentSecurityEvents(@RequestParam(defaultValue = "50") int limit) {
+        List<SecurityDTO> events = securityService.getRecentSecurityEvents(limit);
+        return ResponseEntity.ok(events);
+    }
+
+    @GetMapping("/events/type/{eventType}")
+    public ResponseEntity<List<SecurityDTO>> getSecurityEventsByType(@PathVariable String eventType) {
+        List<SecurityDTO> events = securityService.getSecurityEventsByType(eventType);
+        return ResponseEntity.ok(events);
+    }
+
+    @GetMapping("/events/high-severity")
+    public ResponseEntity<List<SecurityDTO>> getHighSeverityEvents() {
+        List<SecurityDTO> events = securityService.getHighSeverityEvents();
+        return ResponseEntity.ok(events);
+    }
+
+    @GetMapping("/events/all")
+    public ResponseEntity<List<SecurityDTO>> getAllSecurityEvents() {
+        List<SecurityDTO> events = securityService.getAllSecurityEvents();
+        return ResponseEntity.ok(events);
     }
 
     // ==================== ACCOUNT LOCK ENDPOINTS ====================
 
     @GetMapping("/account-lock/{userId}/status")
     public ResponseEntity<LockDTO> getLockStatus(@PathVariable String userId) {
-        boolean isLocked = accountLockService.isAccountLocked(userId);
-        var lock = accountLockService.getActiveLock(userId);
-        
-        LockDTO dto = LockDTO.builder()
-            .userId(userId)
-            .isLocked(isLocked)
-            .lockedAt(lock.map(l -> l.getLockedAt()).orElse(null))
-            .unlocksAt(lock.map(l -> l.getUnlocksAt()).orElse(null))
-            .lockReason(lock.map(l -> l.getLockReason()).orElse(null))
-            .failedAttempts(lock.map(l -> l.getFailedAttempts()).orElse(0))
-            .build();
-        return ResponseEntity.ok(dto);
+        LockDTO lock = accountLockService.getAccountLockStatus(userId);
+        return ResponseEntity.ok(lock);
+    }
+
+    @PostMapping("/account-lock/{userId}/lock")
+    public ResponseEntity<LockDTO> lockAccount(
+            @PathVariable String userId,
+            @RequestParam String email,
+            @RequestParam String reason) {
+        LockDTO lock = accountLockService.lockAccount(userId, email, reason);
+        return ResponseEntity.ok(lock);
     }
 
     @PostMapping("/account-lock/{userId}/unlock")
-    public ResponseEntity<String> unlockAccount(@PathVariable String userId) {
-        accountLockService.unlockAccount(userId);
-        return ResponseEntity.ok("Account unlocked successfully");
+    public ResponseEntity<LockDTO> unlockAccount(
+            @PathVariable String userId,
+            @RequestParam String email,
+            @RequestParam String reason) {
+        LockDTO unlock = accountLockService.unlockAccount(userId, email, reason);
+        return ResponseEntity.ok(unlock);
+    }
+
+    @GetMapping("/account-lock/{userId}/is-locked")
+    public ResponseEntity<Boolean> isAccountLocked(@PathVariable String userId) {
+        boolean locked = accountLockService.isAccountLocked(userId);
+        return ResponseEntity.ok(locked);
     }
 
     // ==================== AUDIT LOG ENDPOINTS ====================
 
     @GetMapping("/audit-logs/user/{userId}")
     public ResponseEntity<List<AuditDTO>> getUserAuditLogs(@PathVariable String userId) {
-        var logs = auditService.getUserAuditLogs(userId);
-        var dtos = logs.stream()
-            .map(log -> AuditDTO.builder()
-                .userId(log.getUserId())
-                .email(log.getEmail())
-                .action(log.getAction())
-                .resource(log.getResource())
-                .resourceId(log.getResourceId())
-                .oldValue(log.getOldValue())
-                .newValue(log.getNewValue())
-                .ipAddress(log.getIpAddress())
-                .userAgent(log.getUserAgent())
-                .status(log.getStatus())
-                .errorMessage(log.getErrorMessage())
-                .createdAt(log.getCreatedAt())
-                .build())
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+        List<AuditDTO> logs = auditService.getUserAuditLogs(userId);
+        return ResponseEntity.ok(logs);
     }
 
     @GetMapping("/audit-logs/action/{action}")
     public ResponseEntity<List<AuditDTO>> getAuditLogsByAction(@PathVariable String action) {
-        var logs = auditService.getAuditLogsByAction(action);
-        var dtos = logs.stream()
-            .map(log -> AuditDTO.builder()
-                .userId(log.getUserId())
-                .email(log.getEmail())
-                .action(log.getAction())
-                .resource(log.getResource())
-                .resourceId(log.getResourceId())
-                .oldValue(log.getOldValue())
-                .newValue(log.getNewValue())
-                .ipAddress(log.getIpAddress())
-                .userAgent(log.getUserAgent())
-                .status(log.getStatus())
-                .errorMessage(log.getErrorMessage())
-                .createdAt(log.getCreatedAt())
-                .build())
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+        List<AuditDTO> logs = auditService.getAuditLogsByAction(action);
+        return ResponseEntity.ok(logs);
     }
 
-    @GetMapping("/audit-logs/date-range")
-    public ResponseEntity<List<AuditDTO>> getAuditLogsByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        var logs = auditService.getAuditLogsByDateRange(start, end);
-        var dtos = logs.stream()
-            .map(log -> AuditDTO.builder()
-                .userId(log.getUserId())
-                .email(log.getEmail())
-                .action(log.getAction())
-                .resource(log.getResource())
-                .resourceId(log.getResourceId())
-                .oldValue(log.getOldValue())
-                .newValue(log.getNewValue())
-                .ipAddress(log.getIpAddress())
-                .userAgent(log.getUserAgent())
-                .status(log.getStatus())
-                .errorMessage(log.getErrorMessage())
-                .createdAt(log.getCreatedAt())
-                .build())
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    @GetMapping("/audit-logs/recent")
+    public ResponseEntity<List<AuditDTO>> getRecentAuditLogs(@RequestParam(defaultValue = "50") int limit) {
+        List<AuditDTO> logs = auditService.getRecentAuditLogs(limit);
+        return ResponseEntity.ok(logs);
+    }
+
+    @GetMapping("/audit-logs/all")
+    public ResponseEntity<List<AuditDTO>> getAllAuditLogs() {
+        List<AuditDTO> logs = auditService.getAllAuditLogs();
+        return ResponseEntity.ok(logs);
     }
 }

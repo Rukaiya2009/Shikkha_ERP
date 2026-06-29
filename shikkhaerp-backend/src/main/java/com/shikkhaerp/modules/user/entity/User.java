@@ -87,12 +87,147 @@ public class User {
     @Version
     private Long version = 0L;
     
+    // ============ COMPATIBILITY GETTERS FOR EXISTING CODE ============
+    
+    /**
+     * Compatibility method - returns name field
+     * Used by: UserService, DemoService, TeacherMapper, etc.
+     */
+    public String getName() {
+        return this.name;
+    }
+    
+    /**
+     * Compatibility method - sets name field
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    /**
+     * Compatibility method - returns email field
+     * Used by: CustomUserDetailsService, UserService, etc.
+     */
+    public String getEmail() {
+        return this.email;
+    }
+    
+    /**
+     * Compatibility method - returns password field
+     * Used by: CustomUserDetailsService, PasswordService
+     */
+    public String getPassword() {
+        return this.password;
+    }
+    
+    /**
+     * Compatibility method - returns role field
+     * Used by: CustomUserDetailsService, UserService
+     */
+    public UserRole getRole() {
+        return this.role;
+    }
+    
+    /**
+     * Compatibility method - returns status field
+     * Used by: UserService
+     */
+    public UserStatus getStatus() {
+        return this.status;
+    }
+    
+    /**
+     * Compatibility method - returns phone field
+     * Used by: UserService
+     */
+    public String getPhone() {
+        return this.phone;
+    }
+    
+    /**
+     * Compatibility method - returns address field
+     * Used by: UserService
+     */
+    public String getAddress() {
+        return this.address;
+    }
+    
+    /**
+     * Compatibility method - checks if user is enabled
+     * Used by: CustomUserDetailsService
+     */
+    public boolean isEnabled() {
+        return this.enabled && this.status == UserStatus.ACTIVE;
+    }
+    
+    /**
+     * Compatibility method - gets ID as Long (for backward compatibility)
+     * Returns null if ID is not a number
+     */
+    public Long getId() {
+        try {
+            return this.id != null ? Long.parseLong(this.id) : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Sets ID from Long (for backward compatibility)
+     */
+    public void setId(Long id) {
+        this.id = id != null ? id.toString() : null;
+    }
+    
+    // ============ SETTERS FOR COMPATIBILITY ============
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+    
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+    
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.status = UserStatus.INACTIVE;
+        }
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    // ============ EXISTING METHODS (unchanged) ============
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (role == null) role = UserRole.STUDENT;
-        if (status == null) status = UserStatus.ACTIVE;  // ← Changed to ACTIVE
+        if (status == null) status = UserStatus.ACTIVE;
         if (loginAttempts == null) loginAttempts = 0;
         
         // DEVELOPMENT: Auto-verify all users
@@ -162,6 +297,8 @@ public class User {
     public boolean isLocked() {
         return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
     }
+    
+    // ============ ENUMS ============
     
     public enum UserRole {
         SUPER_ADMIN("Super Administrator"),

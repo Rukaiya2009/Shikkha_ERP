@@ -10,7 +10,8 @@ public class UserMapper {
     public UserDto toDto(User user) {
         if (user == null) return null;
         UserDto dto = new UserDto();
-        dto.setId(user.getId());
+        // Explicitly cast to String to avoid any ambiguity
+        dto.setId(String.valueOf(user.getId()));
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());

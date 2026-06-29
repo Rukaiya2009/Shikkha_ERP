@@ -73,7 +73,8 @@ public class AuthController {
     @PostMapping("/setup-password")
     public ResponseEntity<?> setupPassword(@Valid @RequestBody SetupPasswordRequest request) {
         try {
-            LoginResponse response = authService.setupPassword(request.getEmail(), request.getPassword());
+            // FIX: Changed from getPassword() to getNewPassword()
+            LoginResponse response = authService.setupPassword(request.getEmail(), request.getNewPassword());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, Object> error = new HashMap<>();

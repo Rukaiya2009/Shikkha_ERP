@@ -1,5 +1,6 @@
 package com.shikkhaerp.modules.auth.service;
 
+import com.shikkhaerp.bootstrap.security.JwtUtil;
 import com.shikkhaerp.modules.auth.dto.LoginRequest;
 import com.shikkhaerp.modules.auth.dto.LoginResponse;
 import com.shikkhaerp.modules.auth.dto.LogoutRequest;
@@ -10,18 +11,21 @@ import com.shikkhaerp.modules.auth.repository.RefreshTokenRepository;
 import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.entity.User.UserRole;
 import com.shikkhaerp.modules.user.repository.UserRepository;
-import com.shikkhaerp.bootstrap.security.JwtTokenProvider;
 import com.shikkhaerp.modules.tenant.service.TenantService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -30,7 +34,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider tokenProvider;
+    private final JwtUtil jwtUtil;
     private final TenantService tenantService;
     private final TokenBlacklistService tokenBlacklistService;
     
@@ -40,22 +44,14 @@ public class AuthService {
             throw new RuntimeException("Email already registered");
         }
         
-        // =============================================
-        // SCHOOL ID: Derived from tenant context
-        // Frontend does NOT send schoolId
-        // =============================================
         String schoolId = null;
         
-        // SUPER_ADMIN doesn't need a school
         if (request.getRole() != UserRole.SUPER_ADMIN) {
             schoolId = tenantService.getCurrentSchoolId();
         }
         
-        // =============================================
-        // DEVELOPMENT: Use default school if still null
-        // =============================================
         if (schoolId == null || schoolId.trim().isEmpty()) {
-            schoolId = "1"; // Default school for development
+            schoolId = "1";
         }
         
         User user = new User();
@@ -64,13 +60,14 @@ public class AuthService {
         user.setName(request.getFullName());
         user.setRole(request.getRole());
         user.setSchoolId(schoolId);
-        
-        // Auto-verify for development
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setStatus(User.UserStatus.ACTIVE);
         
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("User registered: {} with role: {}", savedUser.getEmail(), savedUser.getRole());
+        
+        return savedUser;
     }
     
     @Transactional
@@ -93,12 +90,23 @@ public class AuthService {
         user.recordLoginSuccess(null, null);
         userRepository.save(user);
         
-        String userId = user.getId();
+        // FIXED: Convert Long to String using String.valueOf()
+        String userId = String.valueOf(user.getId());
         String email = user.getEmail();
         String role = user.getRole().name();
         
-        String accessToken = tokenProvider.generateToken(userId, email, role);
-        String refreshToken = tokenProvider.generateRefreshToken(userId);
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+            email,
+            user.getPassword(),
+            user.isEnabled(),
+            true, true, true,
+            java.util.Collections.singletonList(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role)
+            )
+        );
+        
+        String accessToken = jwtUtil.generateToken(userDetails);
+        String refreshToken = generateRefreshToken(userId);
         String redirectUrl = getDashboardUrl(user.getRole());
         
         RefreshToken refreshTokenEntity = new RefreshToken();
@@ -107,13 +115,16 @@ public class AuthService {
         refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(refreshTokenEntity);
         
+        // FIXED: Convert Long to String using String.valueOf()
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
-            .id(user.getId())
+            .id(String.valueOf(user.getId()))
             .email(user.getEmail())
             .fullName(user.getName())
             .role(convertToAuthRole(user.getRole()))
             .schoolId(user.getSchoolId())
             .build();
+        
+        log.info("User logged in: {}", email);
         
         return LoginResponse.builder()
             .accessToken(accessToken)
@@ -123,55 +134,72 @@ public class AuthService {
             .redirectUrl(redirectUrl)
             .build();
     }
+    
     @Transactional
     public LoginResponse setupPassword(String email, String newPassword) {
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-    // Encode and set new password
-    user.setPassword(passwordEncoder.encode(newPassword));
-    user.setEnabled(true);
-    user.setStatus(User.UserStatus.ACTIVE);
-    userRepository.save(user);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setEnabled(true);
+        user.setStatus(User.UserStatus.ACTIVE);
+        userRepository.save(user);
 
-    // Generate tokens (just like login)
-    String userId = user.getId();
-    String userEmail = user.getEmail();
-    String role = user.getRole().name();
-    String accessToken = tokenProvider.generateToken(userId, userEmail, role);
-    String refreshToken = tokenProvider.generateRefreshToken(userId);
+        // FIXED: Convert Long to String using String.valueOf()
+        String userId = String.valueOf(user.getId());
+        String userEmail = user.getEmail();
+        String role = user.getRole().name();
+        
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+            userEmail,
+            user.getPassword(),
+            user.isEnabled(),
+            true, true, true,
+            java.util.Collections.singletonList(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role)
+            )
+        );
+        
+        String accessToken = jwtUtil.generateToken(userDetails);
+        String refreshToken = generateRefreshToken(userId);
 
-    RefreshToken refreshTokenEntity = new RefreshToken();
-    refreshTokenEntity.setToken(refreshToken);
-    refreshTokenEntity.setUserId(userId);
-    refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
-    refreshTokenRepository.save(refreshTokenEntity);
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setToken(refreshToken);
+        refreshTokenEntity.setUserId(userId);
+        refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
+        refreshTokenRepository.save(refreshTokenEntity);
 
-    LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
-        .id(user.getId())
-        .email(user.getEmail())
-        .fullName(user.getName())
-        .role(convertToAuthRole(user.getRole()))
-        .schoolId(user.getSchoolId())
-        .build();
+        // FIXED: Convert Long to String using String.valueOf()
+        LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
+            .id(String.valueOf(user.getId()))
+            .email(user.getEmail())
+            .fullName(user.getName())
+            .role(convertToAuthRole(user.getRole()))
+            .schoolId(user.getSchoolId())
+            .build();
 
-    return LoginResponse.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken)
-        .tokenType("Bearer")
-        .user(userInfo)
-        .redirectUrl(getDashboardUrl(user.getRole()))
-        .build();
-}
+        log.info("Password setup completed for: {}", email);
+
+        return LoginResponse.builder()
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .tokenType("Bearer")
+            .user(userInfo)
+            .redirectUrl(getDashboardUrl(user.getRole()))
+            .build();
+    }
+    
     @Transactional
     public LogoutResponse logout(LogoutRequest request) {
         String refreshToken = request.getRefreshToken();
         
         if (refreshToken != null && !refreshToken.isEmpty()) {
             try {
-                String userId = tokenProvider.getUserIdFromToken(refreshToken);
-                tokenBlacklistService.blacklistToken(refreshToken, userId);
+                String email = jwtUtil.extractUsername(refreshToken);
+                tokenBlacklistService.blacklistToken(refreshToken, email);
                 refreshTokenRepository.deleteByToken(refreshToken);
+                
+                log.info("User logged out: {}", email);
                 
                 return LogoutResponse.builder()
                     .success(true)
@@ -179,6 +207,7 @@ public class AuthService {
                     .build();
                     
             } catch (Exception e) {
+                log.warn("Error during logout: {}", e.getMessage());
                 return LogoutResponse.builder()
                     .success(true)
                     .message("Logged out successfully")
@@ -190,6 +219,10 @@ public class AuthService {
             .success(true)
             .message("Logged out successfully")
             .build();
+    }
+    
+    private String generateRefreshToken(String userId) {
+        return UUID.randomUUID().toString() + "-" + userId;
     }
     
     private String getDashboardUrl(UserRole role) {

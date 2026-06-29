@@ -1,3 +1,4 @@
+//cat > src/main/java/com/shikkhaerp/modules/demo/dto/DemoRequestResponse.java << 'EOF'
 package com.shikkhaerp.modules.demo.dto;
 
 import lombok.AllArgsConstructor;

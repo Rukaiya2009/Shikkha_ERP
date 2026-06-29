@@ -1,76 +1,54 @@
-//cat > src/main/java/com/shikkhaerp/modules/auth/service/SecurityService.java << 'EOF'
 package com.shikkhaerp.modules.auth.service;
 
-import com.shikkhaerp.modules.auth.entity.LoginHistory;
-import com.shikkhaerp.modules.auth.entity.SecurityEvent;
-import com.shikkhaerp.modules.auth.repository.LoginHistoryRepository;
-import com.shikkhaerp.modules.auth.repository.SecurityEventRepository;
+import com.shikkhaerp.modules.auth.dto.SecurityDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SecurityService {
 
-    private final SecurityEventRepository securityEventRepository;
-    private final LoginHistoryRepository loginHistoryRepository;
+    private final List<SecurityDTO> securityEvents = new ArrayList<>();
 
-    // ==================== LOGIN HISTORY METHODS ====================
-
-    public List<LoginHistory> getUserLoginHistory(String userId) {
-        return loginHistoryRepository.findByUserIdOrderByLoginTimeDesc(userId);
+    public void logSecurityEvent(SecurityDTO event) {
+        event.setEventTime(LocalDateTime.now());
+        securityEvents.add(event);
+        log.info("Security event: {} - {} - {}", event.getEventType(), event.getEmail(), event.getSeverity());
     }
 
-    // ==================== SECURITY EVENT METHODS ====================
-
-    @Transactional
-    public SecurityEvent logSecurityEvent(String userId, String email, String eventType, 
-                                          String description, String severity, String ipAddress, 
-                                          String userAgent, String metadata) {
-        SecurityEvent event = SecurityEvent.builder()
-            .userId(userId)
-            .email(email)
-            .eventType(eventType)
-            .description(description)
-            .severity(severity)
-            .ipAddress(ipAddress)
-            .userAgent(userAgent)
-            .metadata(metadata)
-            .eventTime(LocalDateTime.now())
-            .status("PENDING")
-            .build();
-        return securityEventRepository.save(event);
+    public List<SecurityDTO> getUserSecurityEvents(String userId) {
+        return securityEvents.stream()
+            .filter(event -> userId.equals(event.getUserId()))
+            .collect(Collectors.toList());
     }
 
-    public List<SecurityEvent> getUserSecurityEvents(String userId) {
-        return securityEventRepository.findByUserIdOrderByEventTimeDesc(userId);
+    public List<SecurityDTO> getRecentSecurityEvents(int limit) {
+        return securityEvents.stream()
+            .sorted((a, b) -> b.getEventTime().compareTo(a.getEventTime()))
+            .limit(limit)
+            .collect(Collectors.toList());
     }
 
-    public List<SecurityEvent> getSecurityEventsByType(String eventType) {
-        return securityEventRepository.findByEventTypeOrderByEventTimeDesc(eventType);
+    public List<SecurityDTO> getSecurityEventsByType(String eventType) {
+        return securityEvents.stream()
+            .filter(event -> eventType.equals(event.getEventType()))
+            .collect(Collectors.toList());
     }
 
-    public List<SecurityEvent> getSecurityEventsBySeverity(String severity) {
-        return securityEventRepository.findBySeverityOrderByEventTimeDesc(severity);
+    public List<SecurityDTO> getAllSecurityEvents() {
+        return new ArrayList<>(securityEvents);
     }
 
-    public List<SecurityEvent> getSecurityEventsByDateRange(LocalDateTime start, LocalDateTime end) {
-        return securityEventRepository.findByDateRange(start, end);
-    }
-
-    @Transactional
-    public void resolveSecurityEvent(UUID eventId, String resolvedBy, String notes) {
-        securityEventRepository.findById(eventId).ifPresent(event -> {
-            event.setStatus("RESOLVED");
-            event.setResolvedBy(resolvedBy);
-            event.setResolutionNotes(notes);
-            event.setResolvedAt(LocalDateTime.now());
-            securityEventRepository.save(event);
-        });
+    public List<SecurityDTO> getHighSeverityEvents() {
+        return securityEvents.stream()
+            .filter(event -> "HIGH".equals(event.getSeverity()) || "CRITICAL".equals(event.getSeverity()))
+            .collect(Collectors.toList());
     }
 }
