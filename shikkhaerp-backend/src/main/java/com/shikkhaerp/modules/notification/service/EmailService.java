@@ -38,11 +38,6 @@ public class EmailService {
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            log.info("🔍 DEBUG token check — length: {}, starts: '{}', ends: '{}'",
-                zeptoMailToken.length(),
-                zeptoMailToken.substring(0, Math.min(25, zeptoMailToken.length())),
-                zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10)));
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Accept", "application/json");
@@ -71,17 +66,27 @@ public class EmailService {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(ZEPTOMAIL_API_URL, request, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                ZEPTOMAIL_API_URL, request, String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("✅ Email sent to: {}", to);
             } else {
-                log.error("❌ ZeptoMail returned unexpected status {} for: {}", response.getStatusCode(), to);
-                throw new RuntimeException("Email sending failed with status: " + response.getStatusCode());
+                log.error("❌ ZeptoMail returned unexpected status {} for: {}",
+                    response.getStatusCode(), to);
+                throw new RuntimeException("Email sending failed with status: "
+                    + response.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("❌ Failed to send email to: {}", to, e);
-            throw new RuntimeException("Email sending failed: " + e.getMessage());
+            String tokenDebug = String.format(
+                "TOKEN_LEN=%d TOKEN_START=[%s] TOKEN_END=[%s]",
+                zeptoMailToken.length(),
+                zeptoMailToken.substring(0, Math.min(25, zeptoMailToken.length())),
+                zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10))
+            );
+            log.error("❌ Failed to send email to: {} | {}", to, tokenDebug, e);
+            throw new RuntimeException("Email sending failed: "
+                + e.getMessage() + " || " + tokenDebug);
         }
     }
 
@@ -106,7 +111,6 @@ public class EmailService {
             request.getSchoolName(),
             request.getUuid()
         );
-
         sendEmail(request.getSuperAdminEmail(), subject, body);
         log.info("📧 Demo submission confirmation sent to: {}", request.getSuperAdminEmail());
     }
@@ -134,7 +138,6 @@ public class EmailService {
             request.getSuperAdminEmail(),
             password
         );
-
         sendEmail(request.getSuperAdminEmail(), subject, body);
         log.info("📧 Demo approval notification sent to: {}", request.getSuperAdminEmail());
     }
@@ -159,7 +162,6 @@ public class EmailService {
             request.getSchoolName(),
             reason
         );
-
         sendEmail(request.getSuperAdminEmail(), subject, body);
         log.info("📧 Demo rejection notification sent to: {}", request.getSuperAdminEmail());
     }
@@ -193,7 +195,6 @@ public class EmailService {
             baseUrl, request.getUuid(),
             baseUrl, request.getUuid()
         );
-
         sendEmail(adminEmail, subject, body);
         log.info("📧 Admin notification sent to: {}", adminEmail);
     }
@@ -218,7 +219,6 @@ public class EmailService {
             baseUrl,
             resetToken
         );
-
         sendEmail(email, subject, body);
         log.info("📧 Password reset email sent to: {}", email);
     }
@@ -241,7 +241,6 @@ public class EmailService {
             baseUrl,
             verificationToken
         );
-
         sendEmail(email, subject, body);
         log.info("📧 Email verification sent to: {}", email);
     }
@@ -268,7 +267,6 @@ public class EmailService {
             email,
             password
         );
-
         sendEmail(email, subject, body);
         log.info("📧 Welcome email sent to: {}", email);
     }
