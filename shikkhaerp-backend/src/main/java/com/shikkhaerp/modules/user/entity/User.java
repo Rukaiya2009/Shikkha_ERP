@@ -13,239 +13,195 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "app_users")  // ← CHANGED from "users" to "app_users"
+@Table(name = "app_users")
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private String id;
-    
+    @Column(name = "id", columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     @Column(unique = true, nullable = false, name = "email")
     private String email;
-    
+
     @NotBlank(message = "Password is required")
     @Column(nullable = false, name = "password")
     private String password;
-    
+
     @NotBlank(message = "Name is required")
     @Size(max = 100)
     @Column(nullable = false, name = "name")
     private String name;
-    
+
     @Column(name = "phone")
     private String phone;
-    
+
     @Column(name = "address")
     private String address;
-    
+
     @Column(name = "profile_image")
     private String profileImage;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private UserRole role;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private UserStatus status;
-    
+
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
-    
+
     @Column(name = "last_login_ip")
     private String lastLoginIp;
-    
+
     @Column(name = "last_login_user_agent")
     private String lastLoginUserAgent;
-    
+
     @Column(name = "email_verified")
     private boolean emailVerified = true;
-    
+
     @Column(name = "email_verification_token")
     private String emailVerificationToken;
-    
+
     @Column(name = "email_verification_token_expiry")
     private LocalDateTime emailVerificationTokenExpiry;
-    
+
     @Column(name = "phone_verified")
     private boolean phoneVerified = false;
-    
+
     @Column(name = "enabled")
     private boolean enabled = true;
-    
+
     @Column(name = "login_attempts")
     private Integer loginAttempts = 0;
-    
+
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
-    
+
     @Column(name = "school_id")
     private String schoolId;
-    
+
     @Column(name = "tenant_id")
     private String tenantId;
-    
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
+
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @CreatedBy
     @Column(name = "created_by", updatable = false)
     private String createdBy;
-    
+
     @LastModifiedBy
     @Column(name = "updated_by")
     private String updatedBy;
-    
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-    
+
     @Column(name = "deleted_by")
     private String deletedBy;
-    
+
     @Version
     @Column(name = "version")
     private Long version = 0L;
-    
+
     // ============ COMPATIBILITY GETTERS FOR EXISTING CODE ============
-    
-    /**
-     * Compatibility method - returns name field
-     */
+
     public String getName() {
         return this.name;
     }
-    
-    /**
-     * Compatibility method - sets name field
-     */
+
     public void setName(String name) {
         this.name = name;
     }
-    
-    /**
-     * Compatibility method - returns email field
-     */
+
     public String getEmail() {
         return this.email;
     }
-    
-    /**
-     * Compatibility method - returns password field
-     */
+
     public String getPassword() {
         return this.password;
     }
-    
-    /**
-     * Compatibility method - returns role field
-     */
+
     public UserRole getRole() {
         return this.role;
     }
-    
-    /**
-     * Compatibility method - returns status field
-     */
+
     public UserStatus getStatus() {
         return this.status;
     }
-    
-    /**
-     * Compatibility method - returns phone field
-     */
+
     public String getPhone() {
         return this.phone;
     }
-    
-    /**
-     * Compatibility method - returns address field
-     */
+
     public String getAddress() {
         return this.address;
     }
-    
-    /**
-     * Compatibility method - checks if user is enabled
-     */
+
     public boolean isEnabled() {
         return this.enabled && this.status == UserStatus.ACTIVE;
     }
-    
-    /**
-     * Compatibility method - gets ID as Long (for backward compatibility)
-     */
-    public Long getId() {
-        try {
-            return this.id != null ? Long.parseLong(this.id) : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-    
-    /**
-     * Sets ID from Long (for backward compatibility)
-     */
-    public void setId(Long id) {
-        this.id = id != null ? id.toString() : null;
-    }
-    
+
     // ============ SETTERS FOR COMPATIBILITY ============
-    
+
     public void setEmail(String email) {
         this.email = email;
     }
-    
+
     public void setPassword(String password) {
         this.password = password;
     }
-    
+
     public void setPhone(String phone) {
         this.phone = phone;
     }
-    
+
     public void setAddress(String address) {
         this.address = address;
     }
-    
+
     public void setRole(UserRole role) {
         this.role = role;
     }
-    
+
     public void setStatus(UserStatus status) {
         this.status = status;
     }
-    
+
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
             this.status = UserStatus.INACTIVE;
         }
     }
-    
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
+
     // ============ EXISTING METHODS ============
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -253,31 +209,30 @@ public class User {
         if (role == null) role = UserRole.STUDENT;
         if (status == null) status = UserStatus.ACTIVE;
         if (loginAttempts == null) loginAttempts = 0;
-        
-        // DEVELOPMENT: Auto-verify all users
+
         emailVerified = true;
         enabled = true;
         status = UserStatus.ACTIVE;
         phoneVerified = false;
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-    
+
     public void generateEmailVerificationToken(String token) {
         this.emailVerificationToken = token;
         this.emailVerificationTokenExpiry = LocalDateTime.now().plusHours(24);
     }
-    
+
     public boolean isVerificationTokenValid(String token) {
-        return token != null && 
-               token.equals(this.emailVerificationToken) && 
+        return token != null &&
+               token.equals(this.emailVerificationToken) &&
                emailVerificationTokenExpiry != null &&
                emailVerificationTokenExpiry.isAfter(LocalDateTime.now());
     }
-    
+
     public void verifyEmail() {
         this.emailVerified = true;
         this.emailVerificationToken = null;
@@ -285,21 +240,21 @@ public class User {
         this.enabled = true;
         this.status = UserStatus.ACTIVE;
     }
-    
+
     public void softDelete(String deletedBy) {
         this.deletedAt = LocalDateTime.now();
         this.deletedBy = deletedBy;
         this.enabled = false;
         this.status = UserStatus.INACTIVE;
     }
-    
+
     public void restore() {
         this.deletedAt = null;
         this.deletedBy = null;
         this.enabled = true;
         this.status = UserStatus.ACTIVE;
     }
-    
+
     public void recordLoginFailure() {
         this.loginAttempts++;
         if (this.loginAttempts >= 5) {
@@ -307,7 +262,7 @@ public class User {
             this.status = UserStatus.LOCKED;
         }
     }
-    
+
     public void recordLoginSuccess(String ip, String userAgent) {
         this.loginAttempts = 0;
         this.lockedUntil = null;
@@ -318,13 +273,13 @@ public class User {
             this.status = UserStatus.ACTIVE;
         }
     }
-    
+
     public boolean isLocked() {
         return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
     }
-    
+
     // ============ ENUMS ============
-    
+
     public enum UserRole {
         SUPER_ADMIN("Super Administrator"),
         SCHOOL_ADMIN("School Administrator"),
@@ -332,18 +287,18 @@ public class User {
         STUDENT("Student"),
         PARENT("Parent"),
         DEVELOPER("Developer");
-        
+
         private final String displayName;
-        
+
         UserRole(String displayName) {
             this.displayName = displayName;
         }
-        
+
         public String getDisplayName() {
             return displayName;
         }
     }
-    
+
     public enum UserStatus {
         ACTIVE, INACTIVE, SUSPENDED, PENDING_VERIFICATION, LOCKED
     }
