@@ -2,7 +2,7 @@ package com.shikkhaerp.modules.demo.api;
 
 import com.shikkhaerp.modules.demo.dto.DemoRequestDTO;
 import com.shikkhaerp.modules.demo.dto.DemoRequestResponse;
-import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;  // ← ADD THIS LINE
+import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
 import com.shikkhaerp.modules.demo.service.DemoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/demo")
+@RequestMapping("/demo")
 @RequiredArgsConstructor
 @Slf4j
 public class DemoController {
