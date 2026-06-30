@@ -23,13 +23,15 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
         default_schema: public
+        connection:
+          provider_disables_autocommit: true
         jdbc:
           batch_size: 20
         order_inserts: true
@@ -79,7 +81,7 @@ app:
   company:
     admin:
       email: ${COMPANY_ADMIN_EMAIL}
-  
+
   security:
     jwt:
       secret: ${JWT_SECRET}
@@ -87,8 +89,7 @@ app:
       refresh-expiration: 604800000
 
 cors:
-  allowed-origins:
-    - ${CORS_ALLOWED_ORIGINS}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods:
     - "GET"
     - "POST"
@@ -114,45 +115,45 @@ demo:
     templates:
       submission: |
         Dear {{name}},
-        
+
         Thank you for your interest in ShikkhaERP!
-        
+
         We have received your demo request for {{schoolName}}.
         Your request ID is: {{requestId}}
-        
+
         Our team will review your request and get back to you within 24-48 hours.
-        
+
         Best regards,
         ShikkhaERP Team
-        
+
         Need help? Contact us at support@shikkhaerp.com
-        
+
       approval: |
         Dear {{name}},
-        
+
         Congratulations! Your demo request for {{schoolName}} has been APPROVED.
-        
+
         Your temporary login credentials:
         URL: {{baseUrl}}
         Email: {{email}}
         Password: {{password}}
-        
+
         Please login and change your password immediately.
-        
+
         Best regards,
         ShikkhaERP Team
-        
+
       rejection: |
         Dear {{name}},
-        
+
         Thank you for your interest in ShikkhaERP.
-        
+
         We regret to inform you that your demo request for {{schoolName}} has been REJECTED.
-        
+
         Reason: {{reason}}
-        
+
         If you have any questions, please contact us at support@shikkhaerp.com
-        
+
         Best regards,
         ShikkhaERP Team
 
