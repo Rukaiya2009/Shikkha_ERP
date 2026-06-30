@@ -38,6 +38,11 @@ public class EmailService {
 
     public void sendEmail(String to, String subject, String body) {
         try {
+            log.info("🔍 DEBUG token check — length: {}, starts: '{}', ends: '{}'",
+                zeptoMailToken.length(),
+                zeptoMailToken.substring(0, Math.min(25, zeptoMailToken.length())),
+                zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10)));
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Accept", "application/json");
