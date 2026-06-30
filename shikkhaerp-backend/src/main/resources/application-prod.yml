@@ -38,7 +38,8 @@ spring:
         order_updates: true
     open-in-view: false
 
-  # Email Configuration (Zoho SMTP)
+  # Email Configuration (Zoho SMTP) — no longer used by EmailService (now via ZeptoMail HTTP API),
+  # left in place harmlessly in case of rollback
   mail:
     host: smtp.zoho.com
     port: 465
@@ -58,6 +59,10 @@ spring:
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
+
+# ZeptoMail (Zoho's HTTP transactional email API) configuration
+zeptomail:
+  token: ${ZEPTOMAIL_TOKEN}
 
 server:
   port: ${PORT:8080}

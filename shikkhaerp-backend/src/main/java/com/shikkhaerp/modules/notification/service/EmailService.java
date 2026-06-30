@@ -1,21 +1,33 @@
 package com.shikkhaerp.modules.notification.service;
 
 import com.shikkhaerp.modules.demo.entity.PendingDemoRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${spring.mail.username:shikkhaerp@zohomail.com}")
+    private static final String ZEPTOMAIL_API_URL = "https://api.zeptomail.com/v1.1/email";
+
+    @Value("${zeptomail.token}")
+    private String zeptoMailToken;
+
+    @Value("${spring.mail.username:shikkhaerp@itdatascience.com}")
     private String fromEmail;
 
     @Value("${app.company.admin.email}")
@@ -24,32 +36,50 @@ public class EmailService {
     @Value("${app.base-url:https://shikkha-erp.onrender.com}")
     private String baseUrl;
 
-    // =============================================
-    // CORE EMAIL METHOD
-    // =============================================
-
     public void sendEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            message.setFrom(fromEmail);
-            mailSender.send(message);
-            log.info("✅ Email sent to: {}", to);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Accept", "application/json");
+            headers.set("Authorization", zeptoMailToken);
+
+            Map<String, Object> fromMap = new HashMap<>();
+            fromMap.put("address", fromEmail);
+            fromMap.put("name", "ShikkhaERP");
+
+            List<Map<String, Object>> toList = new ArrayList<>();
+            for (String recipient : to.split("[,;\\s]+")) {
+                if (recipient.isBlank()) continue;
+                Map<String, Object> emailAddress = new HashMap<>();
+                emailAddress.put("address", recipient.trim());
+
+                Map<String, Object> toEntry = new HashMap<>();
+                toEntry.put("email_address", emailAddress);
+                toList.add(toEntry);
+            }
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("from", fromMap);
+            payload.put("to", toList);
+            payload.put("subject", subject);
+            payload.put("textbody", body);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(ZEPTOMAIL_API_URL, request, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("✅ Email sent to: {}", to);
+            } else {
+                log.error("❌ ZeptoMail returned unexpected status {} for: {}", response.getStatusCode(), to);
+                throw new RuntimeException("Email sending failed with status: " + response.getStatusCode());
+            }
         } catch (Exception e) {
             log.error("❌ Failed to send email to: {}", to, e);
             throw new RuntimeException("Email sending failed: " + e.getMessage());
         }
     }
 
-    // =============================================
-    // DEMO REQUEST EMAILS
-    // =============================================
-
-    /**
-     * Send demo submission confirmation to user
-     */
     public void sendDemoSubmissionConfirmation(PendingDemoRequest request) {
         String subject = "Demo Request Received - ShikkhaERP";
         String body = String.format("""
@@ -76,9 +106,6 @@ public class EmailService {
         log.info("📧 Demo submission confirmation sent to: {}", request.getSuperAdminEmail());
     }
 
-    /**
-     * Send demo approval notification to user
-     */
     public void sendDemoApprovalNotification(PendingDemoRequest request, String password) {
         String subject = "Demo Request Approved - ShikkhaERP";
         String body = String.format("""
@@ -107,9 +134,6 @@ public class EmailService {
         log.info("📧 Demo approval notification sent to: {}", request.getSuperAdminEmail());
     }
 
-    /**
-     * Send demo rejection notification to user
-     */
     public void sendDemoRejectionNotification(PendingDemoRequest request, String reason) {
         String subject = "Demo Request Status Update - ShikkhaERP";
         String body = String.format("""
@@ -135,9 +159,6 @@ public class EmailService {
         log.info("📧 Demo rejection notification sent to: {}", request.getSuperAdminEmail());
     }
 
-    /**
-     * Send admin notification for new demo request
-     */
     public void sendAdminNotification(PendingDemoRequest request) {
         String subject = "🔔 New Demo Request - " + request.getSchoolName();
         String body = String.format("""
@@ -172,13 +193,6 @@ public class EmailService {
         log.info("📧 Admin notification sent to: {}", adminEmail);
     }
 
-    // =============================================
-    // AUTH EMAILS (Password Reset, Verification)
-    // =============================================
-
-    /**
-     * Send password reset email
-     */
     public void sendPasswordResetEmail(String email, String resetToken) {
         String subject = "Password Reset Request - ShikkhaERP";
         String body = String.format("""
@@ -204,9 +218,6 @@ public class EmailService {
         log.info("📧 Password reset email sent to: {}", email);
     }
 
-    /**
-     * Send email verification email
-     */
     public void sendEmailVerification(String email, String verificationToken) {
         String subject = "Verify Your Email - ShikkhaERP";
         String body = String.format("""
@@ -230,9 +241,6 @@ public class EmailService {
         log.info("📧 Email verification sent to: {}", email);
     }
 
-    /**
-     * Send welcome email to new user
-     */
     public void sendWelcomeEmail(String email, String name, String password) {
         String subject = "Welcome to ShikkhaERP!";
         String body = String.format("""
