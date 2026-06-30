@@ -10,3 +10,6 @@ mvn clean compile
 -----frontend
 npm run dev
 cd shikkhaerp-frontend
+--------------
+git status
+git log -1 --oneline

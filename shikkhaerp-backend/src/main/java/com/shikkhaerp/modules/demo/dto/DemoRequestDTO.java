@@ -63,8 +63,6 @@ public class DemoRequestDTO {
         private String phone;
     }
 
-    // ===== Compatibility getters so DemoService.java / DemoController.java need no changes =====
-
     public String getSchoolName() {
         return school != null ? school.getName() : null;
     }
