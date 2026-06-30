@@ -39,9 +39,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/auth/**",
-                    "/api/public/**",
-                    "/api/demo/**",          // ← ALL /api/demo/* endpoints are public
+                    "/auth/**",
+                    "/public/**",
+                    "/demo/**",          // ← context-path "/api" is already prepended automatically; do not repeat it here
                     "/actuator/health",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -68,7 +68,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
