@@ -1,4 +1,3 @@
-//cat > src/main/java/com/shikkhaerp/modules/demo/entity/PendingDemoRequest.java << 'EOF'
 package com.shikkhaerp.modules.demo.entity;
 
 import jakarta.persistence.*;
@@ -83,8 +82,22 @@ public class PendingDemoRequest {
     @Column(name = "reject_reason")
     private String rejectReason;
 
-    @Column(name = "request_data", columnDefinition = "jsonb")
+    @Column(name = "request_data", columnDefinition = "text")
     private String requestData;
+
+    // ── Secure one-click email token fields ──────────────────────────────────
+    @Column(name = "approval_token", unique = true)
+    private String approvalToken;
+
+    @Column(name = "rejection_token", unique = true)
+    private String rejectionToken;
+
+    @Column(name = "approval_token_used")
+    private boolean approvalTokenUsed = false;
+
+    @Column(name = "rejection_token_used")
+    private boolean rejectionTokenUsed = false;
+    // ─────────────────────────────────────────────────────────────────────────
 
     @PrePersist
     protected void onCreate() {

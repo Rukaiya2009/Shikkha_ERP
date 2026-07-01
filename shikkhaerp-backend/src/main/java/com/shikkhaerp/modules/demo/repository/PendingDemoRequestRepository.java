@@ -7,11 +7,16 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PendingDemoRequestRepository extends JpaRepository<PendingDemoRequest, Long> {  // ✅ Changed to Long
+public interface PendingDemoRequestRepository extends JpaRepository<PendingDemoRequest, UUID> {
 
     Optional<PendingDemoRequest> findByUuid(String uuid);
+
+    Optional<PendingDemoRequest> findByApprovalToken(String approvalToken);
+
+    Optional<PendingDemoRequest> findByRejectionToken(String rejectionToken);
 
     List<PendingDemoRequest> findByStatus(String status);
 

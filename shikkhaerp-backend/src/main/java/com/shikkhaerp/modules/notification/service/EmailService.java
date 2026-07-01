@@ -77,15 +77,8 @@ public class EmailService {
                     + response.getStatusCode());
             }
         } catch (Exception e) {
-            String tokenDebug = String.format(
-                "TOKEN_LEN=%d TOKEN_START=[%s] TOKEN_END=[%s]",
-                zeptoMailToken.length(),
-                zeptoMailToken.substring(0, Math.min(20, zeptoMailToken.length())),
-                zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10))
-            );
-            log.error("❌ Failed to send email to: {} | {}", to, tokenDebug, e);
-            throw new RuntimeException("Email sending failed: "
-                + e.getMessage() + " || " + tokenDebug);
+            log.error("❌ Failed to send email to: {}", to, e);
+            throw new RuntimeException("Email sending failed: " + e.getMessage());
         }
     }
 
@@ -179,9 +172,9 @@ public class EmailService {
 
             Request ID: %s
 
-            View: %s/api/demo/%s
-            Approve: %s/api/demo/approve/%s
-            Reject: %s/api/demo/reject/%s
+            ── One-click actions (valid for 7 days) ──
+            ✅ APPROVE: %s/api/demo/approve?token=%s
+            ❌ REJECT:  %s/api/demo/reject?token=%s
             """,
             request.getSchoolName(),
             request.getSchoolAddress(),
@@ -190,9 +183,8 @@ public class EmailService {
             request.getSuperAdminName(),
             request.getSuperAdminEmail(),
             request.getUuid(),
-            baseUrl, request.getUuid(),
-            baseUrl, request.getUuid(),
-            baseUrl, request.getUuid()
+            baseUrl, request.getApprovalToken(),
+            baseUrl, request.getRejectionToken()
         );
         sendEmail(adminEmail, subject, body);
         log.info("📧 Admin notification sent to: {}", adminEmail);
