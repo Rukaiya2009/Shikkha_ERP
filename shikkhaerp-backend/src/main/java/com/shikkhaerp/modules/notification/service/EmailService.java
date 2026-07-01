@@ -40,8 +40,7 @@ public class EmailService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Accept", "application/json");
-            // Prefix is hardcoded here — env var contains raw token only
-            headers.set("Authorization", "Zoho-enczapikey " + zeptoMailToken);
+            headers.set("Authorization", zeptoMailToken);
 
             Map<String, Object> fromMap = new HashMap<>();
             fromMap.put("address", fromEmail);
@@ -81,7 +80,7 @@ public class EmailService {
             String tokenDebug = String.format(
                 "TOKEN_LEN=%d TOKEN_START=[%s] TOKEN_END=[%s]",
                 zeptoMailToken.length(),
-                zeptoMailToken.substring(0, Math.min(15, zeptoMailToken.length())),
+                zeptoMailToken.substring(0, Math.min(20, zeptoMailToken.length())),
                 zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10))
             );
             log.error("❌ Failed to send email to: {} | {}", to, tokenDebug, e);
