@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -41,7 +40,8 @@ public class EmailService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Accept", "application/json");
-            headers.set("Authorization", zeptoMailToken);
+            // Prefix is hardcoded here — env var contains raw token only
+            headers.set("Authorization", "Zoho-enczapikey " + zeptoMailToken);
 
             Map<String, Object> fromMap = new HashMap<>();
             fromMap.put("address", fromEmail);
@@ -81,7 +81,7 @@ public class EmailService {
             String tokenDebug = String.format(
                 "TOKEN_LEN=%d TOKEN_START=[%s] TOKEN_END=[%s]",
                 zeptoMailToken.length(),
-                zeptoMailToken.substring(0, Math.min(25, zeptoMailToken.length())),
+                zeptoMailToken.substring(0, Math.min(15, zeptoMailToken.length())),
                 zeptoMailToken.substring(Math.max(0, zeptoMailToken.length() - 10))
             );
             log.error("❌ Failed to send email to: {} | {}", to, tokenDebug, e);
