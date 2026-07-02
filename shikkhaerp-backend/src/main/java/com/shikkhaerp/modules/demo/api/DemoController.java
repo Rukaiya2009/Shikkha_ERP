@@ -97,10 +97,10 @@ public class DemoController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
+            error.put("success", false);  
             error.put("message", "Failed to approve: " + e.getMessage());
             return ResponseEntity.badRequest().body(error);
-        }
+        }   
     }
 
     @PostMapping("/reject/{uuid}")
