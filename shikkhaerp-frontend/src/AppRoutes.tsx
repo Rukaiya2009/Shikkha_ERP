@@ -10,7 +10,11 @@ import TeacherDashboard from './features/dashboard/TeacherDashboard';
 import ParentDashboard from './features/dashboard/ParentDashboard';
 import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
 import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
-import DeveloperDashboard from './features/dashboard/DeveloperDashboard'; // NEW
+import DeveloperDashboard from './features/dashboard/DeveloperDashboard';
+import DeveloperApprovalsPage from './features/dashboard/DeveloperApprovalsPage';
+import DeveloperSchoolsPage from './features/dashboard/DeveloperSchoolsPage';
+import DeveloperEmailLogsPage from './features/dashboard/DeveloperEmailLogsPage';
+import DeveloperSettingsPage from './features/dashboard/DeveloperSettingsPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 
 // Get user role from localStorage
@@ -87,6 +91,10 @@ export const AppRoutes = () => {
       {/* ✅ All dashboard routes WITH sidebar/header */}
       <Route element={<DashboardLayout />}>
         <Route path="/developer/dashboard" element={<DeveloperDashboard />} />
+        <Route path="/developer/approvals" element={<DeveloperApprovalsPage />} />
+        <Route path="/developer/schools" element={<DeveloperSchoolsPage />} />
+        <Route path="/developer/email-logs" element={<DeveloperEmailLogsPage />} />
+        <Route path="/developer/settings" element={<DeveloperSettingsPage />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
         <Route path="/school-admin/dashboard" element={<AdminDashboard />} />
