@@ -232,6 +232,7 @@ public class AuthService {
             case TEACHER: return "/teacher/dashboard";
             case STUDENT: return "/student/dashboard";
             case PARENT: return "/parent/dashboard";
+            case DEVELOPER: return "/developer/dashboard";
             default: return "/dashboard";
         }
     }
@@ -243,6 +244,7 @@ public class AuthService {
             case TEACHER: return com.shikkhaerp.modules.auth.entity.Role.TEACHER;
             case STUDENT: return com.shikkhaerp.modules.auth.entity.Role.STUDENT;
             case PARENT: return com.shikkhaerp.modules.auth.entity.Role.PARENT;
+            case DEVELOPER: return com.shikkhaerp.modules.auth.entity.Role.DEVELOPER;
             default: return com.shikkhaerp.modules.auth.entity.Role.STUDENT;
         }
     }

@@ -72,7 +72,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
 
         } catch (IllegalArgumentException e) {
-            log.error("❌ Invalid ADMIN_ROLE: {}. Must be one of: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, STUDENT, PARENT", adminRole);
+            log.error("❌ Invalid ADMIN_ROLE: {}. Must be one of: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, STUDENT, PARENT, DEVELOPER", adminRole);
         } catch (Exception e) {
             log.error("❌ Failed to create admin user(s): {}", e.getMessage());
         }
