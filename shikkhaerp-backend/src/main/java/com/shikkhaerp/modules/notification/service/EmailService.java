@@ -35,6 +35,12 @@ public class EmailService {
     @Value("${app.base-url:https://shikkha-erp.onrender.com}")
     private String baseUrl;
 
+    // NEW: the frontend needs its own URL, separate from the backend baseUrl —
+    // invite links must point users at a page in the React app (where a
+    // "Set your password" screen can exist), not at a bare backend API route.
+    @Value("${app.frontend-url:https://shikka-erp-website.vercel.app}")
+    private String frontendUrl;
+
     public void sendEmail(String to, String subject, String body) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -260,5 +266,36 @@ public class EmailService {
         );
         sendEmail(email, subject, body);
         log.info("📧 Welcome email sent to: {}", email);
+    }
+
+    // ==================== NEW: user invitation (secure, token-based) ====================
+    // Unlike sendWelcomeEmail() above (which puts a plaintext password in the
+    // email — the old pattern), this sends a link to a frontend page where the
+    // invited person sets their OWN password. The admin who created the
+    // account never sees or sets it. Links to the frontend app, not the
+    // backend API, since a real page needs to render there to collect the
+    // new password and call /auth/setup-password.
+    public void sendUserInvitation(String email, String name, String token) {
+        String subject = "You've been invited to ShikkhaERP";
+        String body = String.format("""
+            Hello %s,
+
+            You've been added to ShikkhaERP. To activate your account, set your
+            password using the link below:
+
+            %s/setup-password?token=%s
+
+            This link will expire in 24 hours. If it expires, ask your admin to
+            resend the invitation.
+
+            Best regards,
+            ShikkhaERP Team
+            """,
+            name,
+            frontendUrl,
+            token
+        );
+        sendEmail(email, subject, body);
+        log.info("📧 User invitation sent to: {}", email);
     }
 }

@@ -90,7 +90,6 @@ public class AuthService {
         user.recordLoginSuccess(null, null);
         userRepository.save(user);
         
-        // FIXED: Convert Long to String using String.valueOf()
         String userId = String.valueOf(user.getId());
         String email = user.getEmail();
         String role = user.getRole().name();
@@ -115,7 +114,6 @@ public class AuthService {
         refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(refreshTokenEntity);
         
-        // FIXED: Convert Long to String using String.valueOf()
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
             .id(String.valueOf(user.getId()))
             .email(user.getEmail())
@@ -135,17 +133,27 @@ public class AuthService {
             .build();
     }
     
+    // FIXED — this was the security hole. Previously took (email, newPassword)
+    // and trusted the caller-supplied email with zero verification, meaning
+    // anyone could reset anyone's password by just knowing their email.
+    //
+    // Now: the user is found BY THE TOKEN itself (proof they have the emailed
+    // link), and isVerificationTokenValid() confirms the token matches AND
+    // hasn't expired before anything is allowed to change. If either check
+    // fails, this throws instead of silently proceeding.
     @Transactional
-    public LoginResponse setupPassword(String email, String newPassword) {
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    public LoginResponse setupPassword(String token, String newPassword) {
+        User user = userRepository.findByEmailVerificationToken(token)
+            .orElseThrow(() -> new RuntimeException("Invalid or expired setup link. Please request a new invitation."));
+
+        if (!user.isVerificationTokenValid(token)) {
+            throw new RuntimeException("Invalid or expired setup link. Please request a new invitation.");
+        }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setEnabled(true);
-        user.setStatus(User.UserStatus.ACTIVE);
+        user.verifyEmail(); // clears the token, sets emailVerified=true, enabled=true, status=ACTIVE
         userRepository.save(user);
 
-        // FIXED: Convert Long to String using String.valueOf()
         String userId = String.valueOf(user.getId());
         String userEmail = user.getEmail();
         String role = user.getRole().name();
@@ -169,7 +177,6 @@ public class AuthService {
         refreshTokenEntity.setExpiryDate(LocalDateTime.now().plusDays(7));
         refreshTokenRepository.save(refreshTokenEntity);
 
-        // FIXED: Convert Long to String using String.valueOf()
         LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
             .id(String.valueOf(user.getId()))
             .email(user.getEmail())
@@ -178,7 +185,7 @@ public class AuthService {
             .schoolId(user.getSchoolId())
             .build();
 
-        log.info("Password setup completed for: {}", email);
+        log.info("Password setup completed for: {}", userEmail);
 
         return LoginResponse.builder()
             .accessToken(accessToken)

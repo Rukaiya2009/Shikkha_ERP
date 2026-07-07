@@ -1,5 +1,6 @@
 package com.shikkhaerp.modules.user.service;
 
+import com.shikkhaerp.modules.notification.service.EmailService;
 import com.shikkhaerp.modules.user.entity.User;
 import com.shikkhaerp.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,19 +25,38 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
+    // CHANGED: this used to accept and encode whatever password the client
+    // sent. It no longer does — ANY password on the incoming `user` object
+    // is ignored. A random, unusable placeholder is generated internally,
+    // the account is created as PENDING_VERIFICATION, and an invite email
+    // is sent with a link the new user uses to set their OWN password via
+    // /auth/setup-password. This matches the international-standard invite
+    // pattern (Slack/GitHub/Google Workspace) instead of an admin knowing
+    // or transmitting someone else's password.
     @Transactional
     public User createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("User with email " + user.getEmail() + " already exists!");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        String placeholder = UUID.randomUUID().toString();
+        user.setPassword(passwordEncoder.encode(placeholder));
+        user.setStatus(User.UserStatus.PENDING_VERIFICATION);
+        user.setEnabled(false);
+        user.setEmailVerified(false);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
+        String token = UUID.randomUUID().toString();
+        user.generateEmailVerificationToken(token);
+
         User savedUser = userRepository.save(user);
-        log.info("User created successfully: {} ({})", savedUser.getEmail(), savedUser.getRole());
+
+        emailService.sendUserInvitation(savedUser.getEmail(), savedUser.getName(), token);
+
+        log.info("User invited: {} ({}) — pending verification", savedUser.getEmail(), savedUser.getRole());
 
         return savedUser;
     }
@@ -69,6 +89,54 @@ public class UserService {
         log.info("User status updated: {} -> enabled={}", user.getEmail(), enabled);
     }
 
+    // ==================== soft delete / restore ====================
+
+    @Transactional
+    public User deleteUser(UUID id, String deletedBy) {
+        User user = getUserById(id);
+        user.softDelete(deletedBy);
+        User saved = userRepository.save(user);
+        log.info("User soft-deleted: {} (by {})", saved.getEmail(), deletedBy);
+        return saved;
+    }
+
+    @Transactional
+    public User restoreUser(UUID id) {
+        User user = getUserById(id);
+        user.restore();
+        User saved = userRepository.save(user);
+        log.info("User restored: {}", saved.getEmail());
+        return saved;
+    }
+
+    public Page<User> getDeletedUsers(int page, int size, String schoolId) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.findDeletedUsers(schoolId, pageable);
+    }
+
+    // ==================== NEW: resend invite ====================
+    // For when a PENDING_VERIFICATION user's 24-hour token expires before
+    // they click it. Generates a fresh token and re-sends the email —
+    // does nothing (and shouldn't) for users who already completed setup.
+
+    @Transactional
+    public User resendInvite(UUID id) {
+        User user = getUserById(id);
+
+        if (user.getStatus() != User.UserStatus.PENDING_VERIFICATION) {
+            throw new RuntimeException("This user has already completed account setup.");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.generateEmailVerificationToken(token);
+        userRepository.save(user);
+
+        emailService.sendUserInvitation(user.getEmail(), user.getName(), token);
+        log.info("Invitation resent to: {}", user.getEmail());
+
+        return user;
+    }
+
     public User getUserById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
@@ -83,22 +151,13 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public Page<User> getAllUsers(int page, int size, String role, String status) {
+    public Page<User> getAllUsers(int page, int size, String role, String status, String schoolId) {
         Pageable pageable = PageRequest.of(page, size);
 
-        if (role != null && status != null) {
-            return userRepository.findByRoleAndStatus(
-                User.UserRole.valueOf(role),
-                User.UserStatus.valueOf(status),
-                pageable
-            );
-        } else if (role != null) {
-            return userRepository.findByRole(User.UserRole.valueOf(role), pageable);
-        } else if (status != null) {
-            return userRepository.findByStatus(User.UserStatus.valueOf(status), pageable);
-        }
+        User.UserRole roleEnum = (role != null && !role.isBlank()) ? User.UserRole.valueOf(role) : null;
+        User.UserStatus statusEnum = (status != null && !status.isBlank()) ? User.UserStatus.valueOf(status) : null;
 
-        return userRepository.findAll(pageable);
+        return userRepository.findActiveUsersWithFilters(roleEnum, statusEnum, schoolId, pageable);
     }
 
     public Map<String, Long> getUserStatistics() {

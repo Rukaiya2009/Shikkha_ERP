@@ -209,11 +209,12 @@ public class User {
         if (role == null) role = UserRole.STUDENT;
         if (status == null) status = UserStatus.ACTIVE;
         if (loginAttempts == null) loginAttempts = 0;
-
-        emailVerified = true;
-        enabled = true;
-        status = UserStatus.ACTIVE;
-        phoneVerified = false;
+        // NOTE: this previously force-set emailVerified=true, enabled=true,
+        // status=ACTIVE unconditionally on every insert, which silently
+        // overrode any attempt to create a user in PENDING_VERIFICATION
+        // state (e.g. the invite-email flow). Removed — field defaults
+        // declared above, or values explicitly set by the service before
+        // save(), are now respected instead of being clobbered here.
     }
 
     @PreUpdate

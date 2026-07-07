@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginContainer from './features/auth/containers/Login.container';
 import RegisterContainer from './features/auth/containers/Register.container';
+import SetupPassword from './features/auth/containers/SetupPassword.container';
 import { DashboardLayout } from './shared/layouts/DashboardLayout';
 import StudentDashboard from './features/dashboard/StudentDashboard';
 import SuperAdminDashboard from './features/dashboard/SuperAdminDashboard';
@@ -17,14 +18,14 @@ import DeveloperEmailLogsPage from './features/dashboard/DeveloperEmailLogsPage'
 import DeveloperSettingsPage from './features/dashboard/DeveloperSettingsPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 import { ROUTE_PERMISSIONS } from './core/constants/routePermissions';
+import { UserList } from './features/user/components/UserList';
 
-// Get user role from localStorage
 const getUserRole = () => {
   const userStr = localStorage.getItem('user');
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      return user.role; // e.g. 'super_admin', 'developer' (lowercase)
+      return user.role;
     } catch (e) {
       return null;
     }
@@ -59,6 +60,7 @@ export const AppRoutes = () => {
       <Routes>
         <Route path="/login" element={<LoginContainer />} />
         <Route path="/register" element={<RegisterContainer />} />
+        <Route path="/setup-password" element={<SetupPassword />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -68,8 +70,8 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginContainer />} />
       <Route path="/register" element={<RegisterContainer />} />
+      <Route path="/setup-password" element={<SetupPassword />} />
 
-      {/* Approval route – standalone (no sidebar) */}
       <Route
         path="/app/approve/:uuid"
         element={
@@ -79,7 +81,6 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* Welcome route – standalone (no sidebar) */}
       <Route
         path="/welcome"
         element={
@@ -89,7 +90,6 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* All dashboard routes WITH sidebar/header — every one is now role-guarded */}
       <Route element={<DashboardLayout />}>
         <Route
           path="/developer/dashboard"
@@ -148,10 +148,26 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/super-admin/users"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/super-admin']}>
+              <UserList />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
           path="/school-admin/dashboard"
           element={
             <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/school-admin']}>
               <AdminDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/school-admin/users"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/school-admin']}>
+              <UserList />
             </RoleBasedRoute>
           }
         />
@@ -172,7 +188,6 @@ export const AppRoutes = () => {
           }
         />
 
-        {/* Fallbacks (legacy paths) */}
         <Route
           path="/superadmin/dashboard"
           element={

@@ -22,4 +22,7 @@ export const API_ENDPOINTS = {
     STUDENT: '/dashboard/student',
     PARENT: '/dashboard/parent',
   },
+  USERS: {
+    BASE: '/users', // matches backend @RequestMapping("/users") after the /v1 fix
+  },
 } as const;

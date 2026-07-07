@@ -99,4 +99,27 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @Param("schoolId") String schoolId,
             Pageable pageable
     );
+
+    // ==================== NEW: soft-delete-aware queries ====================
+    // These exclude/include deleted users explicitly, so the default list
+    // (findUsersWithFilters above) never accidentally shows a deleted user,
+    // and deleted users still have a dedicated way to be found for restore.
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND " +
+           "(:role IS NULL OR u.role = :role) AND " +
+           "(:status IS NULL OR u.status = :status) AND " +
+           "(:schoolId IS NULL OR u.schoolId = :schoolId)")
+    Page<User> findActiveUsersWithFilters(
+            @Param("role") User.UserRole role,
+            @Param("status") User.UserStatus status,
+            @Param("schoolId") String schoolId,
+            Pageable pageable
+    );
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NOT NULL AND " +
+           "(:schoolId IS NULL OR u.schoolId = :schoolId)")
+    Page<User> findDeletedUsers(
+            @Param("schoolId") String schoolId,
+            Pageable pageable
+    );
 }

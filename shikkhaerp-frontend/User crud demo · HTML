@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShikkhaERP — User Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #81D5FF;
+    --primary-dark: #2E9BE0;
+    --ink: #142334;
+    --ink-soft: #4A5A6B;
+    --surface: #FFFFFF;
+    --bg: #EEF5FC;
+    --line: #DCE7F0;
+    --success: #1B8A5A;
+    --success-bg: #E4F5EC;
+    --warn: #B3261E;
+    --warn-bg: #FBEAE9;
+    --chip-super: #6E4FA3;
+    --chip-super-bg: #F0EBF8;
+    --chip-school: #2E7BB8;
+    --chip-school-bg: #E7F2FB;
+    --chip-teacher: #1B8A5A;
+    --chip-teacher-bg: #E4F5EC;
+    --chip-student: #B8862E;
+    --chip-student-bg: #FBF2E3;
+    --chip-parent: #A34F6E;
+    --chip-parent-bg: #F8EBF0;
+    --chip-dev: #445566;
+    --chip-dev-bg: #E9EDF1;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Manrope', sans-serif; font-weight: 800; color: #06263D; font-size: 15px;
+  }
+  .brand-text { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+
+  /* Role lens switcher — the signature element: makes the permission
+     logic visible and tangible rather than something you take on faith */
+  .lens {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 2px rgba(20,35,52,0.04);
+  }
+  .lens-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; }
+  .lens-toggle {
+    display: flex; background: var(--bg); border-radius: 10px; padding: 3px; gap: 2px;
+  }
+  .lens-btn {
+    border: none; background: transparent; padding: 7px 14px; border-radius: 8px;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer;
+    color: var(--ink-soft); transition: all .15s ease;
+  }
+  .lens-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20,35,52,0.12); }
+
+  .banner {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--primary-dark);
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 22px;
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.55;
+  }
+  .banner strong { color: var(--ink); }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(20,35,52,0.05);
+    overflow: hidden;
+  }
+
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 22px; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 12px;
+  }
+  .panel-title { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 17px; }
+  .panel-title span { color: var(--ink-soft); font-weight: 500; font-size: 13px; margin-left: 8px; }
+
+  .btn {
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13.5px;
+    border-radius: 10px; padding: 9px 16px; cursor: pointer; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px; transition: all .15s ease;
+  }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-primary:hover { background: #0A1826; }
+  .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-danger-ghost { background: transparent; border-color: var(--warn-bg); color: var(--warn); }
+  .btn-danger-ghost:hover { background: var(--warn-bg); }
+  .btn-sm { padding: 6px 11px; font-size: 12.5px; border-radius: 8px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-soft); font-weight: 700; padding: 12px 22px; border-bottom: 1px solid var(--line);
+    background: #F8FBFE;
+  }
+  tbody td { padding: 14px 22px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #FAFCFE; }
+
+  .user-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px; color: #06263D;
+    background: var(--primary); flex-shrink: 0;
+  }
+  .user-name { font-weight: 600; }
+  .user-email { color: var(--ink-soft); font-size: 12.5px; margin-top: 1px; }
+
+  .chip {
+    display: inline-block; padding: 4px 10px; border-radius: 100px; font-size: 12px; font-weight: 700;
+  }
+  .status-active { color: var(--success); background: var(--success-bg); }
+  .status-inactive { color: var(--warn); background: var(--warn-bg); }
+
+  .row-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  .empty-lock {
+    display: flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 12.5px; font-style: italic;
+  }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(10,20,32,0.45); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 18px; width: 100%; max-width: 460px;
+    box-shadow: 0 20px 60px rgba(10,20,32,0.25); overflow: hidden;
+  }
+  .modal-head { padding: 20px 24px 0; }
+  .modal-title { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 18px; }
+  .modal-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  .modal-body { padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--line);
+    font-family: 'Inter', sans-serif; font-size: 13.5px; background: #FAFCFE;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--primary); outline-offset: 1px; border-color: var(--primary-dark); }
+  .field-locked {
+    background: var(--bg) !important; color: var(--ink-soft); cursor: not-allowed;
+  }
+  .field-hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 5px; }
+  .modal-foot {
+    padding: 16px 24px 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); margin-top: 4px;
+  }
+
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 60; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 13.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px;
+    animation: slideIn .25s ease;
+  }
+  @keyframes slideIn { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  @media (max-width: 640px) {
+    thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">SE</div>
+      <div>
+        <div class="brand-text">ShikkhaERP</div>
+        <div class="brand-sub">User Management</div>
+      </div>
+    </div>
+
+    <div class="lens">
+      <span class="lens-label">Viewing as</span>
+      <div class="lens-toggle">
+        <button class="lens-btn active" data-role="super_admin" onclick="setLens('super_admin')">Super Admin</button>
+        <button class="lens-btn" data-role="school_admin" onclick="setLens('school_admin')">School Admin</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner" id="lensBanner"></div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Users <span id="countLabel"></span></div>
+      <button class="btn btn-primary" onclick="openCreate()">+ Add user</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Role</th>
+          <th>School</th>
+          <th>Status</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">Add user</div>
+      <div class="modal-sub" id="modalSub">Create a new account and assign a role.</div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+  // ---- Mock data (stands in for GET /api/users/all) ----
+  let users = [
+    { id: 'u1', name: 'Farhana Hoque', email: 'farhana@itdatascience.com', role: 'SUPER_ADMIN', schoolId: null, status: 'ACTIVE' },
+    { id: 'u2', name: 'Rukaiya Shafique', email: 'rukaiya@itdatascience.com', role: 'DEVELOPER', schoolId: null, status: 'ACTIVE' },
+    { id: 'u3', name: 'Kamal Hossain', email: 'kamal@pisd.edu.bd', role: 'SCHOOL_ADMIN', schoolId: 'PISD', status: 'ACTIVE' },
+    { id: 'u4', name: 'Nusrat Jahan', email: 'nusrat@pisd.edu.bd', role: 'TEACHER', schoolId: 'PISD', status: 'ACTIVE' },
+    { id: 'u5', name: 'Tanvir Ahmed', email: 'tanvir@pisd.edu.bd', role: 'TEACHER', schoolId: 'PISD', status: 'INACTIVE' },
+    { id: 'u6', name: 'Anika Rahman', email: 'anika.parent@gmail.com', role: 'PARENT', schoolId: 'PISD', status: 'ACTIVE' },
+    { id: 'u7', name: 'Rafi Islam', email: 'rafi.student@pisd.edu.bd', role: 'STUDENT', schoolId: 'PISD', status: 'ACTIVE' },
+    { id: 'u8', name: 'Meera Chowdhury', email: 'meera@greenvalley.edu.bd', role: 'SCHOOL_ADMIN', schoolId: 'GREEN_VALLEY', status: 'ACTIVE' },
+    { id: 'u9', name: 'Shafin Karim', email: 'shafin@greenvalley.edu.bd', role: 'STUDENT', schoolId: 'GREEN_VALLEY', status: 'ACTIVE' },
+  ];
+
+  const CURRENT_SCHOOL_ADMIN_SCHOOL = 'PISD'; // simulates the logged-in School Admin's own school
+
+  const ROLE_META = {
+    SUPER_ADMIN: { label: 'Super Admin', cls: 'chip-super' },
+    DEVELOPER: { label: 'Developer', cls: 'chip-dev' },
+    SCHOOL_ADMIN: { label: 'School Admin', cls: 'chip-school' },
+    TEACHER: { label: 'Teacher', cls: 'chip-teacher' },
+    STUDENT: { label: 'Student', cls: 'chip-student' },
+    PARENT: { label: 'Parent', cls: 'chip-parent' },
+  };
+
+  let lens = 'super_admin';
+  let editingId = null;
+
+  function assignableRoles() {
+    // Mirrors real backend rule: a School Admin can never grant super_admin
+    // or developer — those options simply don't exist in their form.
+    return lens === 'super_admin'
+      ? ['SUPER_ADMIN', 'DEVELOPER', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT', 'PARENT']
+      : ['TEACHER', 'STUDENT', 'PARENT'];
+  }
+
+  function visibleUsers() {
+    if (lens === 'super_admin') return users;
+    return users.filter(u => u.schoolId === CURRENT_SCHOOL_ADMIN_SCHOOL);
+  }
+
+  function setLens(role) {
+    lens = role;
+    document.querySelectorAll('.lens-btn').forEach(b => b.classList.toggle('active', b.dataset.role === role));
+    renderBanner();
+    renderTable();
+  }
+
+  function renderBanner() {
+    const el = document.getElementById('lensBanner');
+    if (lens === 'super_admin') {
+      el.innerHTML = `<strong>Super Admin view</strong> — sees users across every school, can assign any role including Super Admin and Developer, and can move a user between schools.`;
+    } else {
+      el.innerHTML = `<strong>School Admin view</strong> — sees only users belonging to <strong>${CURRENT_SCHOOL_ADMIN_SCHOOL}</strong>. The role dropdown only offers Teacher, Student, or Parent — Super Admin and Developer aren't selectable, and the school field is locked to their own school.`;
+    }
+  }
+
+  function initials(name) {
+    return name.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+  }
+
+  function renderTable() {
+    const list = visibleUsers();
+    document.getElementById('countLabel').textContent = `(${list.length})`;
+    const body = document.getElementById('tableBody');
+    body.innerHTML = list.map(u => {
+      const meta = ROLE_META[u.role];
+      const canEdit = lens === 'super_admin' || u.schoolId === CURRENT_SCHOOL_ADMIN_SCHOOL;
+      const isPrivilegedRole = u.role === 'SUPER_ADMIN' || u.role === 'DEVELOPER';
+      const schoolAdminBlocked = lens === 'school_admin' && isPrivilegedRole;
+
+      return `
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">${initials(u.name)}</div>
+              <div>
+                <div class="user-name">${u.name}</div>
+                <div class="user-email">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="chip" style="color:var(--${meta.cls}); background:var(--${meta.cls}-bg);">${meta.label}</span></td>
+          <td>${u.schoolId ?? '<span style="color:var(--ink-soft)">— platform —</span>'}</td>
+          <td><span class="chip ${u.status === 'ACTIVE' ? 'status-active' : 'status-inactive'}">${u.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            <div class="row-actions">
+              ${schoolAdminBlocked
+                ? `<span class="empty-lock">🔒 not visible to School Admin</span>`
+                : `
+                  <button class="btn btn-ghost btn-sm" onclick="openEdit('${u.id}')">Edit</button>
+                  <button class="btn btn-danger-ghost btn-sm" onclick="toggleStatus('${u.id}')">${u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
+                `
+              }
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function openCreate() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = 'Add user';
+    document.getElementById('modalSub').textContent = 'Create a new account and assign a role.';
+    document.getElementById('modalSaveBtn').textContent = 'Create user';
+    const schoolField = lens === 'super_admin'
+      ? `<input id="f_school" type="text" placeholder="e.g. PISD (leave blank for platform-level)" />`
+      : `<input id="f_school" type="text" value="${CURRENT_SCHOOL_ADMIN_SCHOOL}" class="field-locked" disabled />`;
+
+    document.getElementById('modalBody').innerHTML = `
+      <div class="field"><label>Full name</label><input id="f_name" type="text" placeholder="e.g. Nusrat Jahan" /></div>
+      <div class="field"><label>Email</label><input id="f_email" type="email" placeholder="name@school.edu.bd" /></div>
+      <div class="field"><label>Temporary password</label><input id="f_password" type="text" placeholder="Auto-generated or set manually" /></div>
+      <div class="field">
+        <label>Role</label>
+        <select id="f_role">${assignableRoles().map(r => `<option value="${r}">${ROLE_META[r].label}</option>`).join('')}</select>
+        ${lens === 'school_admin' ? `<div class="field-hint">School Admins can only create Teacher, Student, or Parent accounts.</div>` : ''}
+      </div>
+      <div class="field"><label>School</label>${schoolField}</div>
+    `;
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  function openEdit(id) {
+    const u = users.find(x => x.id === id);
+    editingId = id;
+    document.getElementById('modalTitle').textContent = `Edit ${u.name}`;
+    document.getElementById('modalSub').textContent = 'Password is never edited from this form.';
+    document.getElementById('modalSaveBtn').textContent = 'Save changes';
+
+    const schoolField = lens === 'super_admin'
+      ? `<input id="f_school" type="text" value="${u.schoolId ?? ''}" />`
+      : `<input id="f_school" type="text" value="${u.schoolId ?? ''}" class="field-locked" disabled />`;
+
+    document.getElementById('modalBody').innerHTML = `
+      <div class="field"><label>Full name</label><input id="f_name" type="text" value="${u.name}" /></div>
+      <div class="field"><label>Email</label><input id="f_email" type="email" value="${u.email}" disabled class="field-locked" /></div>
+      <div class="field">
+        <label>Role</label>
+        <select id="f_role">${assignableRoles().map(r => `<option value="${r}" ${r === u.role ? 'selected' : ''}>${ROLE_META[r].label}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>School</label>${schoolField}</div>
+    `;
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function saveUser() {
+    const name = document.getElementById('f_name').value.trim();
+    const role = document.getElementById('f_role').value;
+    const schoolEl = document.getElementById('f_school');
+    const schoolId = schoolEl.value.trim() || null;
+
+    if (!name) { showToast('Name is required.'); return; }
+
+    if (editingId) {
+      const u = users.find(x => x.id === editingId);
+      u.name = name;
+      u.role = role;
+      if (lens === 'super_admin') u.schoolId = schoolId;
+      showToast(`Saved changes for ${name}.`);
+    } else {
+      const email = document.getElementById('f_email').value.trim();
+      if (!email) { showToast('Email is required.'); return; }
+      users.push({
+        id: 'u' + (users.length + 1),
+        name, email, role,
+        schoolId: lens === 'super_admin' ? schoolId : CURRENT_SCHOOL_ADMIN_SCHOOL,
+        status: 'ACTIVE',
+      });
+      showToast(`Created user ${name}.`);
+    }
+
+    closeModal();
+    renderTable();
+  }
+
+  function toggleStatus(id) {
+    const u = users.find(x => x.id === id);
+    u.status = u.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    showToast(`${u.name} is now ${u.status === 'ACTIVE' ? 'active' : 'inactive'}.`);
+    renderTable();
+  }
+
+  function showToast(msg) {
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
+  }
+
+  renderBanner();
+  renderTable();
+</script>
+
+</body>
+</html>

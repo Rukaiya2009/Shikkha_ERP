@@ -70,11 +70,15 @@ public class AuthController {
         }
     }
 
+    // FIXED: now requires a valid, unexpired token — the user is identified
+    // by the token itself (proof they clicked the emailed link), never by
+    // a client-supplied email. Previously this endpoint would reset ANY
+    // user's password given only their email address, with no verification
+    // at all. That hole is now closed.
     @PostMapping("/setup-password")
     public ResponseEntity<?> setupPassword(@Valid @RequestBody SetupPasswordRequest request) {
         try {
-            // FIX: Changed from getPassword() to getNewPassword()
-            LoginResponse response = authService.setupPassword(request.getEmail(), request.getNewPassword());
+            LoginResponse response = authService.setupPassword(request.getToken(), request.getNewPassword());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, Object> error = new HashMap<>();
