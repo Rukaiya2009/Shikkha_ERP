@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Backend has context-path /api (NO /v1)
 // Full URL: http://localhost:8080/api/auth/...
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://shikkha-erp.onrender.com/api';
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
