@@ -27,13 +27,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
-    // Creates the user and COMMITS, then sends the invite email as a
-    // best-effort side effect. Email is deliberately NOT part of the
-    // creation transaction: if the mail provider is briefly down or slow,
-    // the user is still created (PENDING_VERIFICATION) and an admin can
-    // use "Resend invite" later. Previously a mail failure rolled back
-    // the whole insert, so a transient email problem made user creation
-    // fail entirely — that coupling is now removed.
+    // CHANGED: this used to accept and encode whatever password the client
+    // sent. It no longer does — ANY password on the incoming `user` object
+    // is ignored. A random, unusable placeholder is generated internally,
+    // the account is created as PENDING_VERIFICATION, and an invite email
+    // is sent with a link the new user uses to set their OWN password via
+    // /auth/setup-password. This matches the international-standard invite
+    // pattern (Slack/GitHub/Google Workspace) instead of an admin knowing
+    // or transmitting someone else's password.
     @Transactional
     public User createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -53,14 +54,9 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
 
-        // Best-effort: never let an email failure roll back the user insert.
-        try {
-            emailService.sendUserInvitation(savedUser.getEmail(), savedUser.getName(), token);
-            log.info("User invited: {} ({}) — invite email sent", savedUser.getEmail(), savedUser.getRole());
-        } catch (Exception e) {
-            log.error("User {} created but invite email FAILED to send: {}. Use Resend invite.",
-                    savedUser.getEmail(), e.getMessage());
-        }
+        emailService.sendUserInvitation(savedUser.getEmail(), savedUser.getName(), token);
+
+        log.info("User invited: {} ({}) — pending verification", savedUser.getEmail(), savedUser.getRole());
 
         return savedUser;
     }
@@ -93,6 +89,8 @@ public class UserService {
         log.info("User status updated: {} -> enabled={}", user.getEmail(), enabled);
     }
 
+    // ==================== soft delete / restore ====================
+
     @Transactional
     public User deleteUser(UUID id, String deletedBy) {
         User user = getUserById(id);
@@ -115,6 +113,11 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size);
         return userRepository.findDeletedUsers(schoolId, pageable);
     }
+
+    // ==================== NEW: resend invite ====================
+    // For when a PENDING_VERIFICATION user's 24-hour token expires before
+    // they click it. Generates a fresh token and re-sends the email —
+    // does nothing (and shouldn't) for users who already completed setup.
 
     @Transactional
     public User resendInvite(UUID id) {
