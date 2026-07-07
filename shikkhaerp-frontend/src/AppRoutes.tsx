@@ -16,6 +16,7 @@ import DeveloperSchoolsPage from './features/dashboard/DeveloperSchoolsPage';
 import DeveloperEmailLogsPage from './features/dashboard/DeveloperEmailLogsPage';
 import DeveloperSettingsPage from './features/dashboard/DeveloperSettingsPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
+import { ROUTE_PERMISSIONS } from './core/constants/routePermissions';
 
 // Get user role from localStorage
 const getUserRole = () => {
@@ -44,7 +45,7 @@ const getDashboardPath = (role: string | null) => {
     case 'teacher': return '/teacher/dashboard';
     case 'parent': return '/parent/dashboard';
     case 'student': return '/student/dashboard';
-    case 'developer': return '/developer/dashboard'; // NEW
+    case 'developer': return '/developer/dashboard';
     default: return '/login';
   }
 };
@@ -72,7 +73,7 @@ export const AppRoutes = () => {
       <Route
         path="/app/approve/:uuid"
         element={
-          <RoleBasedRoute allowedRoles={['developer']}>
+          <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/app/approve']}>
             <SchoolCreationPage />
           </RoleBasedRoute>
         }
@@ -82,28 +83,112 @@ export const AppRoutes = () => {
       <Route
         path="/welcome"
         element={
-          <RoleBasedRoute allowedRoles={['super_admin', 'school_admin']}>
+          <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/welcome']}>
             <WelcomeDashboard />
           </RoleBasedRoute>
         }
       />
 
-      {/* ✅ All dashboard routes WITH sidebar/header */}
+      {/* All dashboard routes WITH sidebar/header — every one is now role-guarded */}
       <Route element={<DashboardLayout />}>
-        <Route path="/developer/dashboard" element={<DeveloperDashboard />} />
-        <Route path="/developer/approvals" element={<DeveloperApprovalsPage />} />
-        <Route path="/developer/schools" element={<DeveloperSchoolsPage />} />
-        <Route path="/developer/email-logs" element={<DeveloperEmailLogsPage />} />
-        <Route path="/developer/settings" element={<DeveloperSettingsPage />} />
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
-        <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
-        <Route path="/school-admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-        <Route path="/parent/dashboard" element={<ParentDashboard />} />
+        <Route
+          path="/developer/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
+              <DeveloperDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/developer/approvals"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
+              <DeveloperApprovalsPage />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/developer/schools"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
+              <DeveloperSchoolsPage />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/developer/email-logs"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
+              <DeveloperEmailLogsPage />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/developer/settings"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
+              <DeveloperSettingsPage />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/student/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/student']}>
+              <StudentDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/super-admin/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/super-admin']}>
+              <SuperAdminDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/school-admin/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/school-admin']}>
+              <AdminDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/teacher']}>
+              <TeacherDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/parent/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/parent']}>
+              <ParentDashboard />
+            </RoleBasedRoute>
+          }
+        />
 
-        {/* Fallbacks */}
-        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        {/* Fallbacks (legacy paths) */}
+        <Route
+          path="/superadmin/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/superadmin']}>
+              <SuperAdminDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/admin']}>
+              <AdminDashboard />
+            </RoleBasedRoute>
+          }
+        />
       </Route>
 
       <Route path="/" element={<Navigate to={getDashboardPath(userRole)} replace />} />
