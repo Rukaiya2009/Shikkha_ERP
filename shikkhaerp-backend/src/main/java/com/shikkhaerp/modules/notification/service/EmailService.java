@@ -38,7 +38,7 @@ public class EmailService {
     // NEW: the frontend needs its own URL, separate from the backend baseUrl —
     // invite links must point users at a page in the React app (where a
     // "Set your password" screen can exist), not at a bare backend API route.
-    @Value("${app.frontend-url:https://shikka-erp-website.vercel.app}")
+    @Value("${app.frontend-url:https://shikkha-erp.vercel.app}")
     private String frontendUrl;
 
     public void sendEmail(String to, String subject, String body) {

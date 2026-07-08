@@ -16,11 +16,14 @@ const ROLE_LABELS: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
+type ViewMode = 'active' | 'deleted';
+
 export const UserList: React.FC = () => {
   const { user, getUserRole } = useAuth();
   const currentRole = getUserRole();
   const isSuperAdmin = currentRole === 'super_admin';
 
+  const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [users, setUsers] = useState<AppUser[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -32,36 +35,43 @@ export const UserList: React.FC = () => {
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async (targetPage: number) => {
+  const loadUsers = useCallback(async (targetPage: number, mode: ViewMode) => {
     setLoading(true);
     setError(null);
     try {
-      // Backend now enforces school scoping server-side for non-super-admins
-      // (see UserController.resolveEffectiveSchoolId) — no client-side
-      // filtering needed anymore. What comes back is already correctly scoped.
-      const result = await userService.getAllPaginated(targetPage, PAGE_SIZE);
+      const result = mode === 'deleted'
+        ? await userService.getDeletedPaginated(targetPage, PAGE_SIZE)
+        : await userService.getAllPaginated(targetPage, PAGE_SIZE);
 
       setUsers(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
       setPage(result.pageNumber);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Could not load users.');
+      setError(err?.response?.data?.message ||
+        (mode === 'deleted' ? 'Could not load deleted users.' : 'Could not load users.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadUsers(0);
-  }, [loadUsers]);
+    loadUsers(0, viewMode);
+  }, [loadUsers, viewMode]);
+
+  const switchView = (mode: ViewMode) => {
+    if (mode === viewMode) return;
+    setError(null);
+    setViewMode(mode);
+  };
 
   const handleDeactivateToggle = async (target: AppUser) => {
     const nextEnabled = target.status !== 'ACTIVE';
     try {
       await userService.setEnabled(target.id, nextEnabled);
-      loadUsers(page);
+      loadUsers(page, viewMode);
     } catch {
       setError(`Could not update status for ${target.name}.`);
     }
@@ -73,7 +83,7 @@ export const UserList: React.FC = () => {
     try {
       await userService.delete(deletingUser.id);
       setDeletingUser(null);
-      loadUsers(page);
+      loadUsers(page, viewMode);
     } catch {
       setError(`Could not delete ${deletingUser.name}.`);
     } finally {
@@ -81,7 +91,36 @@ export const UserList: React.FC = () => {
     }
   };
 
+  const handleRestore = async (target: AppUser) => {
+    setRestoringId(target.id);
+    setError(null);
+    try {
+      await userService.restore(target.id);
+      loadUsers(page, viewMode);
+    } catch {
+      setError(`Could not restore ${target.name}.`);
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const initials = (n: string) => n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+
+  const isDeletedView = viewMode === 'deleted';
+
+  const tabBtn = (mode: ViewMode, label: string) => (
+    <button
+      onClick={() => switchView(mode)}
+      style={{
+        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '7px 14px',
+        border: '1px solid #DCE7F0', cursor: 'pointer',
+        background: viewMode === mode ? '#142334' : 'transparent',
+        color: viewMode === mode ? '#fff' : '#4A5A6B',
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div style={{
@@ -92,20 +131,29 @@ export const UserList: React.FC = () => {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '20px 22px', borderBottom: '1px solid #DCE7F0', flexWrap: 'wrap', gap: 12,
       }}>
-        <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
-          Users <span style={{ color: '#4A5A6B', fontWeight: 500, fontSize: 13, marginLeft: 8 }}>
-            ({totalElements})
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
+            {isDeletedView ? 'Deleted Users' : 'Users'}
+            <span style={{ color: '#4A5A6B', fontWeight: 500, fontSize: 13, marginLeft: 8 }}>
+              ({totalElements})
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {tabBtn('active', 'Active')}
+            {tabBtn('deleted', 'Deleted')}
+          </div>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{
-            fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-            border: 'none', background: '#142334', color: '#fff', cursor: 'pointer',
-          }}
-        >
-          + Add user
-        </button>
+        {!isDeletedView && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
+              border: 'none', background: '#142334', color: '#fff', cursor: 'pointer',
+            }}
+          >
+            + Add user
+          </button>
+        )}
       </div>
 
       {error && (
@@ -120,7 +168,7 @@ export const UserList: React.FC = () => {
         </div>
       ) : users.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#4A5A6B', fontSize: 13.5 }}>
-          No users found.
+          {isDeletedView ? 'No deleted users.' : 'No users found.'}
         </div>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -139,7 +187,7 @@ export const UserList: React.FC = () => {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id}>
+              <tr key={u.id} style={{ opacity: isDeletedView ? 0.72 : 1 }}>
                 <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
@@ -162,43 +210,69 @@ export const UserList: React.FC = () => {
                   {u.schoolId ?? <span style={{ color: '#4A5A6B' }}>— platform —</span>}
                 </td>
                 <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
-                  <span style={{
-                    display: 'inline-block', padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 700,
-                    color: u.status === 'ACTIVE' ? '#1B8A5A' : '#B3261E',
-                    background: u.status === 'ACTIVE' ? '#E4F5EC' : '#FBEAE9',
-                  }}>
-                    {u.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                  </span>
+                  {isDeletedView ? (
+                    <span style={{
+                      display: 'inline-block', padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 700,
+                      color: '#8A5A00', background: '#FBF0DA',
+                    }}>
+                      Deleted
+                    </span>
+                  ) : (
+                    <span style={{
+                      display: 'inline-block', padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 700,
+                      color: u.status === 'ACTIVE' ? '#1B8A5A' : '#B3261E',
+                      background: u.status === 'ACTIVE' ? '#E4F5EC' : '#FBEAE9',
+                    }}>
+                      {u.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                    </span>
+                  )}
                 </td>
                 <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setEditingUser(u)}
-                      style={{
-                        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                        border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeactivateToggle(u)}
-                      style={{
-                        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                        border: '1px solid #DCE7F0', background: 'transparent', color: '#4A5A6B', cursor: 'pointer',
-                      }}
-                    >
-                      {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => setDeletingUser(u)}
-                      style={{
-                        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                        border: '1px solid #FBEAE9', background: 'transparent', color: '#B3261E', cursor: 'pointer',
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {isDeletedView ? (
+                      <button
+                        onClick={() => handleRestore(u)}
+                        disabled={restoringId === u.id}
+                        style={{
+                          fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
+                          border: '1px solid #CDE8D8', background: 'transparent', color: '#1B8A5A',
+                          cursor: restoringId === u.id ? 'not-allowed' : 'pointer',
+                          opacity: restoringId === u.id ? 0.6 : 1,
+                        }}
+                      >
+                        {restoringId === u.id ? 'Restoring…' : 'Restore'}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          style={{
+                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
+                            border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeactivateToggle(u)}
+                          style={{
+                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
+                            border: '1px solid #DCE7F0', background: 'transparent', color: '#4A5A6B', cursor: 'pointer',
+                          }}
+                        >
+                          {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => setDeletingUser(u)}
+                          style={{
+                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
+                            border: '1px solid #FBEAE9', background: 'transparent', color: '#B3261E', cursor: 'pointer',
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -207,7 +281,6 @@ export const UserList: React.FC = () => {
         </table>
       )}
 
-      {/* Pagination controls */}
       {!loading && totalPages > 1 && (
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -218,7 +291,7 @@ export const UserList: React.FC = () => {
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => loadUsers(page - 1)}
+              onClick={() => loadUsers(page - 1, viewMode)}
               disabled={page === 0}
               style={{
                 fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
@@ -229,7 +302,7 @@ export const UserList: React.FC = () => {
               Previous
             </button>
             <button
-              onClick={() => loadUsers(page + 1)}
+              onClick={() => loadUsers(page + 1, viewMode)}
               disabled={page >= totalPages - 1}
               style={{
                 fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
@@ -247,13 +320,13 @@ export const UserList: React.FC = () => {
       <AddUserModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onCreated={() => loadUsers(0)}
+        onCreated={() => loadUsers(0, 'active')}
       />
       <EditUserModal
         isOpen={!!editingUser}
         user={editingUser}
         onClose={() => setEditingUser(null)}
-        onUpdated={() => loadUsers(page)}
+        onUpdated={() => loadUsers(page, viewMode)}
       />
 
       {deletingUser && (
@@ -277,7 +350,7 @@ export const UserList: React.FC = () => {
             <div style={{ fontSize: 13, color: '#4A5A6B', marginTop: 10, lineHeight: 1.55 }}>
               This removes them from the active user list. It's a soft delete — their
               records (grades, attendance, history) are kept, and this can be reversed
-              later from the deleted-users view.
+              later from the Deleted view.
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
