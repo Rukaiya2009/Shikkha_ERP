@@ -61,13 +61,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            // App frontend (the actual software: login, dashboards, User CRUD)
-            "https://shikkha-erp.vercel.app",
-            "https://shikkha-erp-*.vercel.app",
-            // Marketing site (public demo-request site)
-            "https://shikka-erp-website.vercel.app",
-            "https://shikka-erp-website-*.vercel.app",
-            "https://*-shikka-erp-website.vercel.app",
+            // Any Vercel deployment (covers the app, the marketing site, and
+            // every auto-generated preview/deployment URL, which look like
+            // https://shikkha-<hash>-<account>-projects.vercel.app).
+            // allowedOriginPatterns supports wildcards even with credentials.
+            "https://*.vercel.app",
             // Local development
             "http://localhost:3000",
             "http://localhost:5173",
