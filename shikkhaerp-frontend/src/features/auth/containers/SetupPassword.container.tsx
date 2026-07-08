@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { axiosInstance } from '../../../core/api/axiosInstance';
+import { axiosInstance } from '../../../core/api/axiosInstance.ts.bak';
 import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
 const SetupPassword: React.FC = () => {

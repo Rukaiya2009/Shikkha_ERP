@@ -1,4 +1,4 @@
-import { axiosInstance } from '../../../core/api/axiosInstance';
+import { axiosInstance } from '../../../core/api/axiosInstance.ts.bak';
 import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
 export interface AppUser {
