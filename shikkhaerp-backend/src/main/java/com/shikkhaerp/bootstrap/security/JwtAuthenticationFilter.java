@@ -1,3 +1,4 @@
+//cat > src/main/java/com/shikkhaerp/bootstrap/security/JwtAuthenticationFilter.java << 'ENDOFFILE'
 package com.shikkhaerp.bootstrap.security;
 
 import jakarta.servlet.FilterChain;
