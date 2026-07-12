@@ -30,21 +30,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        
+
         final String authHeader = request.getHeader("Authorization");
-        
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // CRITICAL: only JWT PARSING/VALIDATION happens inside this try block.
+        // Previously filterChain.doFilter(...) was also inside it, which meant
+        // every exception thrown anywhere downstream (controllers, services —
+        // e.g. "User with email X already exists!") was caught here and returned
+        // as 401 "Authentication failed". That made ordinary validation errors
+        // look like session expiry, and the frontend interceptor logged the user
+        // out. Business exceptions must NOT be swallowed by the auth filter.
         try {
             final String jwt = authHeader.substring(7);
             final String userEmail = jwtUtil.extractUsername(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
-                
+
                 if (jwtUtil.validateToken(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
@@ -56,12 +63,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.debug("Authentication successful for user: {}", userEmail);
                 }
             }
-            filterChain.doFilter(request, response);
-            
         } catch (Exception e) {
-            log.error("Authentication failed: {}", e.getMessage());
+            log.error("JWT validation failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Authentication failed: " + e.getMessage());
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Authentication failed\"}");
+            return;
         }
+
+        // Runs the rest of the application. Exceptions raised here are handled
+        // by GlobalExceptionHandler, NOT by the catch block above.
+        filterChain.doFilter(request, response);
     }
 }

@@ -1,33 +1,28 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+import { axiosInstance } from '../../../core/api/axiosInstance';
 
+// NOTE: the `token` argument is no longer used — axiosInstance's request
+// interceptor attaches the Bearer token automatically. It is kept as an
+// optional parameter so existing call sites (which still pass a token)
+// continue to compile. Those call sites can be cleaned up separately.
 const superAdminService = {
-  getStats: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/superadmin/stats`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getStats: async (_token?: string) => {
+    const response = await axiosInstance.get('/dashboard/superadmin/stats');
+    return response.data;
   },
-  getSchools: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/superadmin/schools`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+
+  getSchools: async (_token?: string) => {
+    const response = await axiosInstance.get('/dashboard/superadmin/schools');
+    return response.data;
   },
-  getUsers: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/superadmin/users`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+
+  getUsers: async (_token?: string) => {
+    const response = await axiosInstance.get('/dashboard/superadmin/users');
+    return response.data;
   },
-  getSystemHealth: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/superadmin/system-health`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+
+  getSystemHealth: async (_token?: string) => {
+    const response = await axiosInstance.get('/dashboard/superadmin/system-health');
+    return response.data;
   },
 };
 

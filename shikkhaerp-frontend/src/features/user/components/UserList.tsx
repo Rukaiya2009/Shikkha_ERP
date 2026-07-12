@@ -14,14 +14,27 @@ const ROLE_LABELS: Record<string, string> = {
   PARENT: 'Parent',
 };
 
+// FIX 1.1 — all five backend statuses now render distinctly. Previously only
+// ACTIVE vs "everything else = Inactive" was shown, so a freshly invited user
+// (PENDING_VERIFICATION) wrongly appeared as though an admin had deactivated them.
+const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
+  ACTIVE:               { label: 'Active',         color: '#1B8A5A', bg: '#E4F5EC' },
+  INACTIVE:             { label: 'Inactive',       color: '#B3261E', bg: '#FBEAE9' },
+  SUSPENDED:            { label: 'Suspended',      color: '#8A5A00', bg: '#FBF0DA' },
+  PENDING_VERIFICATION: { label: 'Pending invite', color: '#1D4ED8', bg: '#E3EDFB' },
+  LOCKED:               { label: 'Locked',         color: '#6B21A8', bg: '#F3E8FD' },
+};
+
+const statusStyle = (status: string) =>
+  STATUS_STYLES[status] ?? { label: status, color: '#4A5A6B', bg: '#EEF3F8' };
+
 const PAGE_SIZE = 10;
 
 type ViewMode = 'active' | 'deleted';
 
 export const UserList: React.FC = () => {
-  const { user, getUserRole } = useAuth();
+  const { getUserRole } = useAuth();
   const currentRole = getUserRole();
-  const isSuperAdmin = currentRole === 'super_admin';
 
   const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -30,12 +43,14 @@ export const UserList: React.FC = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const loadUsers = useCallback(async (targetPage: number, mode: ViewMode) => {
     setLoading(true);
@@ -64,11 +79,13 @@ export const UserList: React.FC = () => {
   const switchView = (mode: ViewMode) => {
     if (mode === viewMode) return;
     setError(null);
+    setNotice(null);
     setViewMode(mode);
   };
 
   const handleDeactivateToggle = async (target: AppUser) => {
     const nextEnabled = target.status !== 'ACTIVE';
+    setNotice(null);
     try {
       await userService.setEnabled(target.id, nextEnabled);
       loadUsers(page, viewMode);
@@ -104,9 +121,28 @@ export const UserList: React.FC = () => {
     }
   };
 
+  // FIX 1.3 — invite links expire after 24h. Without this an admin had no way
+  // to re-send one; the only workaround was deleting and recreating the user.
+  const handleResendInvite = async (target: AppUser) => {
+    setResendingId(target.id);
+    setError(null);
+    setNotice(null);
+    try {
+      await userService.resendInvite(target.id);
+      setNotice(`Invitation re-sent to ${target.email}.`);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || `Could not resend the invitation to ${target.email}.`);
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const initials = (n: string) => n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
   const isDeletedView = viewMode === 'deleted';
+
+  // FIX 1.5 — surface how many people were invited but have not activated yet.
+  const pendingCount = users.filter((u) => u.status === 'PENDING_VERIFICATION').length;
 
   const tabBtn = (mode: ViewMode, label: string) => (
     <button
@@ -116,6 +152,24 @@ export const UserList: React.FC = () => {
         border: '1px solid #DCE7F0', cursor: 'pointer',
         background: viewMode === mode ? '#142334' : 'transparent',
         color: viewMode === mode ? '#fff' : '#4A5A6B',
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const smallBtn = (
+    label: string,
+    onClick: () => void,
+    opts: { color: string; border: string; disabled?: boolean } 
+  ) => (
+    <button
+      onClick={onClick}
+      disabled={opts.disabled}
+      style={{
+        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
+        border: `1px solid ${opts.border}`, background: 'transparent', color: opts.color,
+        cursor: opts.disabled ? 'not-allowed' : 'pointer', opacity: opts.disabled ? 0.6 : 1,
       }}
     >
       {label}
@@ -142,6 +196,14 @@ export const UserList: React.FC = () => {
             {tabBtn('active', 'Active')}
             {tabBtn('deleted', 'Deleted')}
           </div>
+          {!isDeletedView && pendingCount > 0 && (
+            <span style={{
+              display: 'inline-block', padding: '4px 10px', borderRadius: 100,
+              fontSize: 12, fontWeight: 700, color: '#1D4ED8', background: '#E3EDFB',
+            }}>
+              {pendingCount} pending invite{pendingCount === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
         {!isDeletedView && (
           <button
@@ -159,6 +221,11 @@ export const UserList: React.FC = () => {
       {error && (
         <div style={{ background: '#FBEAE9', color: '#B3261E', fontSize: 13, padding: '10px 22px' }}>
           {error}
+        </div>
+      )}
+      {notice && (
+        <div style={{ background: '#E4F5EC', color: '#1B8A5A', fontSize: 13, padding: '10px 22px' }}>
+          {notice}
         </div>
       )}
 
@@ -186,97 +253,78 @@ export const UserList: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} style={{ opacity: isDeletedView ? 0.72 : 1 }}>
-                <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 700,
-                      fontSize: 13, color: '#06263D', background: '#81D5FF', flexShrink: 0,
-                    }}>
-                      {initials(u.name)}
+            {users.map((u) => {
+              const s = statusStyle(u.status);
+              const isPending = u.status === 'PENDING_VERIFICATION';
+              return (
+                <tr key={u.id} style={{ opacity: isDeletedView ? 0.72 : 1 }}>
+                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 700,
+                        fontSize: 13, color: '#06263D', background: '#81D5FF', flexShrink: 0,
+                      }}>
+                        {initials(u.name)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div>
+                        <div style={{ color: '#4A5A6B', fontSize: 12.5 }}>{u.email}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div>
-                      <div style={{ color: '#4A5A6B', fontSize: 12.5 }}>{u.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
-                  {ROLE_LABELS[u.role] ?? u.role}
-                </td>
-                <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
-                  {u.schoolId ?? <span style={{ color: '#4A5A6B' }}>— platform —</span>}
-                </td>
-                <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
-                  {isDeletedView ? (
-                    <span style={{
-                      display: 'inline-block', padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 700,
-                      color: '#8A5A00', background: '#FBF0DA',
-                    }}>
-                      Deleted
-                    </span>
-                  ) : (
-                    <span style={{
-                      display: 'inline-block', padding: '4px 10px', borderRadius: 100, fontSize: 12, fontWeight: 700,
-                      color: u.status === 'ACTIVE' ? '#1B8A5A' : '#B3261E',
-                      background: u.status === 'ACTIVE' ? '#E4F5EC' : '#FBEAE9',
-                    }}>
-                      {u.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                    </span>
-                  )}
-                </td>
-                <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  </td>
+                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
+                    {ROLE_LABELS[u.role] ?? u.role}
+                  </td>
+                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
+                    {u.schoolId ?? <span style={{ color: '#4A5A6B' }}>— platform —</span>}
+                  </td>
+                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
                     {isDeletedView ? (
-                      <button
-                        onClick={() => handleRestore(u)}
-                        disabled={restoringId === u.id}
-                        style={{
-                          fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                          border: '1px solid #CDE8D8', background: 'transparent', color: '#1B8A5A',
-                          cursor: restoringId === u.id ? 'not-allowed' : 'pointer',
-                          opacity: restoringId === u.id ? 0.6 : 1,
-                        }}
-                      >
-                        {restoringId === u.id ? 'Restoring…' : 'Restore'}
-                      </button>
+                      <span style={{
+                        display: 'inline-block', padding: '4px 10px', borderRadius: 100,
+                        fontSize: 12, fontWeight: 700, color: '#8A5A00', background: '#FBF0DA',
+                      }}>
+                        Deleted
+                      </span>
                     ) : (
-                      <>
-                        <button
-                          onClick={() => setEditingUser(u)}
-                          style={{
-                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                            border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeactivateToggle(u)}
-                          style={{
-                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                            border: '1px solid #DCE7F0', background: 'transparent', color: '#4A5A6B', cursor: 'pointer',
-                          }}
-                        >
-                          {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => setDeletingUser(u)}
-                          style={{
-                            fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-                            border: '1px solid #FBEAE9', background: 'transparent', color: '#B3261E', cursor: 'pointer',
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </>
+                      <span style={{
+                        display: 'inline-block', padding: '4px 10px', borderRadius: 100,
+                        fontSize: 12, fontWeight: 700, color: s.color, background: s.bg,
+                      }}>
+                        {s.label}
+                      </span>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      {isDeletedView ? (
+                        smallBtn(
+                          restoringId === u.id ? 'Restoring…' : 'Restore',
+                          () => handleRestore(u),
+                          { color: '#1B8A5A', border: '#CDE8D8', disabled: restoringId === u.id }
+                        )
+                      ) : (
+                        <>
+                          {isPending && smallBtn(
+                            resendingId === u.id ? 'Sending…' : 'Resend invite',
+                            () => handleResendInvite(u),
+                            { color: '#1D4ED8', border: '#C7DBF7', disabled: resendingId === u.id }
+                          )}
+                          {smallBtn('Edit', () => setEditingUser(u), { color: '#142334', border: '#DCE7F0' })}
+                          {smallBtn(
+                            u.status === 'ACTIVE' ? 'Deactivate' : 'Activate',
+                            () => handleDeactivateToggle(u),
+                            { color: '#4A5A6B', border: '#DCE7F0' }
+                          )}
+                          {smallBtn('Delete', () => setDeletingUser(u), { color: '#B3261E', border: '#FBEAE9' })}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
