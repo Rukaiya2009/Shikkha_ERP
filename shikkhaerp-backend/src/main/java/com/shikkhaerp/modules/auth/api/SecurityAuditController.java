@@ -19,7 +19,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/security")
+@RequestMapping("/security")
 public class SecurityAuditController {
 
     private final SecurityService securityService;

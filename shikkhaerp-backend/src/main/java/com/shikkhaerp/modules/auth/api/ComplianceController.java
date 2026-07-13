@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;  // ← ADD THIS IMPORT
 
 @RestController
-@RequestMapping("/api/compliance")
+@RequestMapping("/compliance")
 @RequiredArgsConstructor
 public class ComplianceController {
 

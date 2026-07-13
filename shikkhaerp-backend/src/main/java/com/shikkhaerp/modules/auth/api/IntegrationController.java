@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;  // ← ADD THIS IMPORT
 
 @RestController
-@RequestMapping("/api/integration")
+@RequestMapping("/integration")
 @RequiredArgsConstructor
 public class IntegrationController {
 

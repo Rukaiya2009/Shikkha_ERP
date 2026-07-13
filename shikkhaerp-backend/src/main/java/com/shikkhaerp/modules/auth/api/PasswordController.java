@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/password")
+@RequestMapping("/password")
 @RequiredArgsConstructor
 public class PasswordController {
 

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/lock")
+@RequestMapping("/lock")
 @RequiredArgsConstructor
 public class LockController {
 

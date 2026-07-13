@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/security/advanced")
+@RequestMapping("/security/advanced")
 @RequiredArgsConstructor
 public class AdvancedSecurityController {
 
