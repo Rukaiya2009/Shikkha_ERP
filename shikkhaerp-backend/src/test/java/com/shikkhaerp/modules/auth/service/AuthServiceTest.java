@@ -26,7 +26,8 @@ class AuthServiceTest {
                 mock(AuthenticationManager.class),
                 mock(JwtUtil.class),
                 mock(TenantService.class),
-                mock(TokenBlacklistService.class)
+                mock(TokenBlacklistService.class),
+                mock(LoginAttemptService.class)
         );
 
         Method getDashboardUrl = AuthService.class.getDeclaredMethod("getDashboardUrl", UserRole.class);

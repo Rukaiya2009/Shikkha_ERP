@@ -13,3 +13,5 @@ cd shikkhaerp-frontend
 --------------
 git status
 git log -1 --oneline
+
+mvn -q package
