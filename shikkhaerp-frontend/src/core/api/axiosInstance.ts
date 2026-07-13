@@ -24,7 +24,7 @@ const isAuthEndpoint = (url?: string): boolean => {
   if (!url) return false;
   return AUTH_ENDPOINTS.some((path) => url.includes(path));
 };
-
+  
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
