@@ -1,4 +1,4 @@
-import { axiosInstance } from '../../../core/api/axiosInstance.ts.bak';
+import { axiosInstance } from '../../../core/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '../types/auth.types';
 

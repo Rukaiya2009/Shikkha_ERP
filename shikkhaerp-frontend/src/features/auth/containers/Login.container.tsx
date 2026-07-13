@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import { axiosInstance } from '../../../core/api/axiosInstance.ts.bak';
+import { axiosInstance } from '../../../core/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
 const LoginContainer: React.FC = () => {
