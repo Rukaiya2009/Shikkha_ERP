@@ -15,6 +15,8 @@ import com.shikkhaerp.modules.tenant.service.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +39,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final TenantService tenantService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final LoginAttemptService loginAttemptService;
     
     @Transactional
     public User register(RegisterRequest request) {
@@ -72,9 +75,25 @@ public class AuthService {
     
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        // Check the lock BEFORE authenticating, so a locked account reports the
+        // lock instead of "invalid credentials".
+        User lockedCheck = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (lockedCheck != null && lockedCheck.isLocked()) {
+            throw new RuntimeException("Account locked due to too many failed attempts. Try again in 30 minutes.");
+        }
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (AuthenticationException e) {
+            // Commits in its OWN transaction (REQUIRES_NEW) — this method is
+            // @Transactional and is about to roll back when we rethrow, which
+            // would otherwise undo the attempt counter and prevent locking.
+            loginAttemptService.recordFailure(request.getEmail());
+            throw new RuntimeException("Invalid credentials");
+        }
         
         User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
