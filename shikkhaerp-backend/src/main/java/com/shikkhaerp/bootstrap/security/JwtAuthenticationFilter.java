@@ -25,6 +25,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
 
+    // Public endpoints must NEVER have their token validated. The browser
+    // attaches whatever accessToken is in localStorage to every request — so a
+    // stale/expired token would otherwise be validated on /auth/login itself,
+    // fail, and return 401 "Authentication failed" BEFORE the login request
+    // reached the login endpoint. That locks the user out of logging in with
+    // correct credentials, recoverable only by clearing localStorage.
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri.contains("/auth/")
+            || uri.contains("/public/")
+            || uri.contains("/demo/")
+            || uri.contains("/actuator/health");
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -40,12 +55,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // CRITICAL: only JWT PARSING/VALIDATION happens inside this try block.
-        // Previously filterChain.doFilter(...) was also inside it, which meant
-        // every exception thrown anywhere downstream (controllers, services —
-        // e.g. "User with email X already exists!") was caught here and returned
-        // as 401 "Authentication failed". That made ordinary validation errors
-        // look like session expiry, and the frontend interceptor logged the user
-        // out. Business exceptions must NOT be swallowed by the auth filter.
+        // filterChain.doFilter(...) must stay OUTSIDE it — otherwise every
+        // exception thrown anywhere downstream (e.g. "User with email X already
+        // exists!") gets caught here and mislabelled as 401 "Authentication
+        // failed", which makes the frontend interceptor log the user out on
+        // ordinary validation errors.
         try {
             final String jwt = authHeader.substring(7);
             final String userEmail = jwtUtil.extractUsername(jwt);
@@ -65,16 +79,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.error("JWT validation failed: {}", e.getMessage());
+            // An invalid token on a PROTECTED endpoint: clear the context and let
+            // the request continue as anonymous. Spring Security will then reject
+            // it, and the frontend interceptor will refresh or redirect. We do NOT
+            // write a 401 here, so business errors are never mistaken for auth ones.
+            log.warn("JWT validation failed: {}", e.getMessage());
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"success\":false,\"message\":\"Authentication failed\"}");
-            return;
         }
 
-        // Runs the rest of the application. Exceptions raised here are handled
-        // by GlobalExceptionHandler, NOT by the catch block above.
         filterChain.doFilter(request, response);
     }
 }
