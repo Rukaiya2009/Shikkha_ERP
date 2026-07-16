@@ -25,4 +25,7 @@ export const API_ENDPOINTS = {
   USERS: {
     BASE: '/users', // matches backend @RequestMapping("/users") after the /v1 fix
   },
+  LOCK: {
+    BASE: '/lock', // POST /lock/{id}/unlock?email=&reason= — clears an account lockout
+  },
 } as const;

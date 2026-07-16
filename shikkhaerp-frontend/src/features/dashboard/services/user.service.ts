@@ -15,9 +15,6 @@ export interface AppUser {
   updatedAt?: string;
 }
 
-// CHANGED: no password field. The backend now generates an unusable
-// placeholder internally and emails the new user an invite link — the
-// admin creating the account never sees or sets a password.
 export interface CreateUserPayload {
   name: string;
   email: string;
@@ -27,9 +24,6 @@ export interface CreateUserPayload {
   schoolId?: string | null;
 }
 
-// Note: password is intentionally NOT included here.
-// UserService.updateUser() on the backend never touches password,
-// and the Edit form must never send one either.
 export interface UpdateUserPayload {
   name?: string;
   phone?: string;
@@ -57,9 +51,6 @@ const userService = {
     status?: string,
     schoolId?: string
   ): Promise<PaginatedUsers> => {
-    // Note: the backend now enforces school scoping server-side for
-    // non-super-admin callers regardless of what schoolId is sent here —
-    // this param is mainly useful for a Super Admin filtering to one school.
     const response = await axiosInstance.get(`${API_ENDPOINTS.USERS.BASE}/all`, {
       params: { page, size, role, status, schoolId },
     });
@@ -94,9 +85,21 @@ const userService = {
     return response.data.data;
   },
 
-  // Soft delete — backend sets deletedAt/deletedBy, user disappears from
-  // the default list but is recoverable via restore(). There is no hard
-  // delete endpoint, intentionally.
+  // Clears an account lockout. This endpoint lives on the /lock controller,
+  // NOT /users. `null` body is deliberate — Spring's @RequestParam binds from
+  // the query string, and passing the params object as the body would make
+  // axios send JSON instead, producing a 400 that looks like a routing bug.
+  //
+  // email = the locked user's OWN email (u.email from the row). That's the key
+  // the failed-login counter is stored under, so the unlock must reference it
+  // to reset the count. If the backend instead expects the acting admin's
+  // email for auditing, that's the single argument to change at the call site.
+  unlock: async (id: string, email: string, reason = 'Unlocked by admin'): Promise<void> => {
+    await axiosInstance.post(`${API_ENDPOINTS.LOCK.BASE}/${id}/unlock`, null, {
+      params: { email, reason },
+    });
+  },
+
   delete: async (id: string): Promise<void> => {
     await axiosInstance.delete(`${API_ENDPOINTS.USERS.BASE}/${id}`);
   },

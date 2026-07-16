@@ -1,4 +1,3 @@
-// src/features/user/components/UserList.tsx
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import userService, { AppUser } from '../../dashboard/services/user.service';
@@ -14,9 +13,6 @@ const ROLE_LABELS: Record<string, string> = {
   PARENT: 'Parent',
 };
 
-// FIX 1.1 — all five backend statuses now render distinctly. Previously only
-// ACTIVE vs "everything else = Inactive" was shown, so a freshly invited user
-// (PENDING_VERIFICATION) wrongly appeared as though an admin had deactivated them.
 const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
   ACTIVE:               { label: 'Active',         color: '#1B8A5A', bg: '#E4F5EC' },
   INACTIVE:             { label: 'Inactive',       color: '#B3261E', bg: '#FBEAE9' },
@@ -29,6 +25,16 @@ const statusStyle = (status: string) =>
   STATUS_STYLES[status] ?? { label: status, color: '#4A5A6B', bg: '#EEF3F8' };
 
 const PAGE_SIZE = 10;
+
+// Order shown in the status filter dropdown. Empty value = no filter.
+const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: '',                     label: 'All statuses' },
+  { value: 'ACTIVE',               label: 'Active' },
+  { value: 'INACTIVE',             label: 'Inactive' },
+  { value: 'SUSPENDED',            label: 'Suspended' },
+  { value: 'LOCKED',               label: 'Locked' },
+  { value: 'PENDING_VERIFICATION', label: 'Pending invite' },
+];
 
 type ViewMode = 'active' | 'deleted';
 
@@ -45,52 +51,128 @@ export const UserList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Search + filter. `keyword` is the raw input; `debouncedKeyword` is what we
+  // actually query with, so we don't fire a request on every keystroke.
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deactivatingUser, setDeactivatingUser] = useState<AppUser | null>(null);
+  const [deactivateSubmitting, setDeactivateSubmitting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async (targetPage: number, mode: ViewMode) => {
+  // Debounce the search box (350ms). Trim here so trailing spaces don't count
+  // as a keyword and flip us into search mode.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
+    return () => clearTimeout(t);
+  }, [keyword]);
+
+  const isDeletedView = viewMode === 'deleted';
+  const isSearchMode = !isDeletedView && debouncedKeyword.length > 0;
+
+  const loadUsers = useCallback(async (targetPage: number) => {
     setLoading(true);
     setError(null);
     try {
-      const result = mode === 'deleted'
-        ? await userService.getDeletedPaginated(targetPage, PAGE_SIZE)
-        : await userService.getAllPaginated(targetPage, PAGE_SIZE);
-
-      setUsers(result.content);
-      setTotalPages(result.totalPages);
-      setTotalElements(result.totalElements);
-      setPage(result.pageNumber);
+      if (viewMode === 'deleted') {
+        const result = await userService.getDeletedPaginated(targetPage, PAGE_SIZE);
+        setUsers(result.content);
+        setTotalPages(result.totalPages);
+        setTotalElements(result.totalElements);
+        setPage(result.pageNumber);
+      } else if (debouncedKeyword) {
+        // SEARCH MODE. The /search endpoint returns a flat, non-paginated list,
+        // so pagination is hidden here. The status filter is applied client-side
+        // on the results so search + status still compose for the user, even
+        // though the backend search itself ignores status.
+        const results = await userService.search(debouncedKeyword);
+        const filtered = statusFilter
+          ? results.filter((u) => u.status === statusFilter)
+          : results;
+        setUsers(filtered);
+        setTotalPages(1);
+        setTotalElements(filtered.length);
+        setPage(0);
+      } else {
+        const result = await userService.getAllPaginated(
+          targetPage,
+          PAGE_SIZE,
+          undefined,
+          statusFilter || undefined
+        );
+        setUsers(result.content);
+        setTotalPages(result.totalPages);
+        setTotalElements(result.totalElements);
+        setPage(result.pageNumber);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message ||
-        (mode === 'deleted' ? 'Could not load deleted users.' : 'Could not load users.'));
+        (viewMode === 'deleted' ? 'Could not load deleted users.' : 'Could not load users.'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewMode, debouncedKeyword, statusFilter]);
 
+  // Any change to view / search / status rebuilds loadUsers and refetches from
+  // page 0. Pagination buttons call loadUsers(page ± 1) directly.
   useEffect(() => {
-    loadUsers(0, viewMode);
-  }, [loadUsers, viewMode]);
+    loadUsers(0);
+  }, [loadUsers]);
 
   const switchView = (mode: ViewMode) => {
     if (mode === viewMode) return;
     setError(null);
     setNotice(null);
+    setKeyword('');
+    setStatusFilter('');
     setViewMode(mode);
   };
 
-  const handleDeactivateToggle = async (target: AppUser) => {
-    const nextEnabled = target.status !== 'ACTIVE';
+  const handleActivate = async (target: AppUser) => {
     setNotice(null);
     try {
-      await userService.setEnabled(target.id, nextEnabled);
-      loadUsers(page, viewMode);
+      await userService.setEnabled(target.id, true);
+      loadUsers(page);
     } catch {
       setError(`Could not update status for ${target.name}.`);
+    }
+  };
+
+  const handleDeactivateConfirmed = async () => {
+    if (!deactivatingUser) return;
+    setDeactivateSubmitting(true);
+    setNotice(null);
+    try {
+      await userService.setEnabled(deactivatingUser.id, false);
+      setDeactivatingUser(null);
+      loadUsers(page);
+    } catch {
+      setError(`Could not deactivate ${deactivatingUser.name}.`);
+    } finally {
+      setDeactivateSubmitting(false);
+    }
+  };
+
+  const handleUnlock = async (target: AppUser) => {
+    setUnlockingId(target.id);
+    setError(null);
+    setNotice(null);
+    try {
+      // Locked user's own email — see note in user.service.ts unlock().
+      await userService.unlock(target.id, target.email);
+      setNotice(`${target.name}'s account has been unlocked.`);
+      loadUsers(page);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || `Could not unlock ${target.name}.`);
+    } finally {
+      setUnlockingId(null);
     }
   };
 
@@ -100,7 +182,7 @@ export const UserList: React.FC = () => {
     try {
       await userService.delete(deletingUser.id);
       setDeletingUser(null);
-      loadUsers(page, viewMode);
+      loadUsers(page);
     } catch {
       setError(`Could not delete ${deletingUser.name}.`);
     } finally {
@@ -113,7 +195,7 @@ export const UserList: React.FC = () => {
     setError(null);
     try {
       await userService.restore(target.id);
-      loadUsers(page, viewMode);
+      loadUsers(page);
     } catch {
       setError(`Could not restore ${target.name}.`);
     } finally {
@@ -121,8 +203,6 @@ export const UserList: React.FC = () => {
     }
   };
 
-  // FIX 1.3 — invite links expire after 24h. Without this an admin had no way
-  // to re-send one; the only workaround was deleting and recreating the user.
   const handleResendInvite = async (target: AppUser) => {
     setResendingId(target.id);
     setError(null);
@@ -139,9 +219,6 @@ export const UserList: React.FC = () => {
 
   const initials = (n: string) => n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
-  const isDeletedView = viewMode === 'deleted';
-
-  // FIX 1.5 — surface how many people were invited but have not activated yet.
   const pendingCount = users.filter((u) => u.status === 'PENDING_VERIFICATION').length;
 
   const tabBtn = (mode: ViewMode, label: string) => (
@@ -161,7 +238,7 @@ export const UserList: React.FC = () => {
   const smallBtn = (
     label: string,
     onClick: () => void,
-    opts: { color: string; border: string; disabled?: boolean } 
+    opts: { color: string; border: string; disabled?: boolean }
   ) => (
     <button
       onClick={onClick}
@@ -218,6 +295,60 @@ export const UserList: React.FC = () => {
         )}
       </div>
 
+      {!isDeletedView && (
+        <div style={{
+          display: 'flex', gap: 10, alignItems: 'center',
+          padding: '14px 22px', borderBottom: '1px solid #DCE7F0', flexWrap: 'wrap',
+        }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="#4A5A6B" strokeWidth="2" strokeLinecap="round"
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Search name, email, or school…"
+              maxLength={120}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '8px 30px',
+                fontSize: 13, border: '1px solid #DCE7F0', borderRadius: 9,
+                color: '#142334', fontFamily: 'Inter, sans-serif', outline: 'none',
+              }}
+            />
+            {keyword && (
+              <button
+                onClick={() => setKeyword('')}
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: '#4A5A6B', fontSize: 16, lineHeight: 1, padding: 0,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: '8px 11px', fontSize: 13, border: '1px solid #DCE7F0', borderRadius: 9,
+              color: '#142334', background: '#fff', fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+            }}
+          >
+            {STATUS_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {error && (
         <div style={{ background: '#FBEAE9', color: '#B3261E', fontSize: 13, padding: '10px 22px' }}>
           {error}
@@ -235,7 +366,11 @@ export const UserList: React.FC = () => {
         </div>
       ) : users.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#4A5A6B', fontSize: 13.5 }}>
-          {isDeletedView ? 'No deleted users.' : 'No users found.'}
+          {isDeletedView
+            ? 'No deleted users.'
+            : isSearchMode
+              ? `No users match "${debouncedKeyword}".`
+              : 'No users found.'}
         </div>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -306,6 +441,11 @@ export const UserList: React.FC = () => {
                         )
                       ) : (
                         <>
+                          {u.status === 'LOCKED' && smallBtn(
+                            unlockingId === u.id ? 'Unlocking…' : 'Unlock',
+                            () => handleUnlock(u),
+                            { color: '#6B21A8', border: '#D8C4F0', disabled: unlockingId === u.id }
+                          )}
                           {isPending && smallBtn(
                             resendingId === u.id ? 'Sending…' : 'Resend invite',
                             () => handleResendInvite(u),
@@ -314,7 +454,9 @@ export const UserList: React.FC = () => {
                           {smallBtn('Edit', () => setEditingUser(u), { color: '#142334', border: '#DCE7F0' })}
                           {smallBtn(
                             u.status === 'ACTIVE' ? 'Deactivate' : 'Activate',
-                            () => handleDeactivateToggle(u),
+                            u.status === 'ACTIVE'
+                              ? () => setDeactivatingUser(u)
+                              : () => handleActivate(u),
                             { color: '#4A5A6B', border: '#DCE7F0' }
                           )}
                           {smallBtn('Delete', () => setDeletingUser(u), { color: '#B3261E', border: '#FBEAE9' })}
@@ -329,7 +471,7 @@ export const UserList: React.FC = () => {
         </table>
       )}
 
-      {!loading && totalPages > 1 && (
+      {!loading && !isSearchMode && totalPages > 1 && (
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '14px 22px', borderTop: '1px solid #DCE7F0', fontSize: 13,
@@ -339,7 +481,7 @@ export const UserList: React.FC = () => {
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => loadUsers(page - 1, viewMode)}
+              onClick={() => loadUsers(page - 1)}
               disabled={page === 0}
               style={{
                 fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
@@ -350,7 +492,7 @@ export const UserList: React.FC = () => {
               Previous
             </button>
             <button
-              onClick={() => loadUsers(page + 1, viewMode)}
+              onClick={() => loadUsers(page + 1)}
               disabled={page >= totalPages - 1}
               style={{
                 fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
@@ -368,13 +510,13 @@ export const UserList: React.FC = () => {
       <AddUserModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onCreated={() => loadUsers(0, 'active')}
+        onCreated={() => { setKeyword(''); setStatusFilter(''); loadUsers(0); }}
       />
       <EditUserModal
         isOpen={!!editingUser}
         user={editingUser}
         onClose={() => setEditingUser(null)}
-        onUpdated={() => loadUsers(page, viewMode)}
+        onUpdated={() => loadUsers(page)}
       />
 
       {deletingUser && (
@@ -421,6 +563,55 @@ export const UserList: React.FC = () => {
                 }}
               >
                 {deleteSubmitting ? 'Deleting…' : 'Delete user'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deactivatingUser && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(10,20,32,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20,
+          }}
+          onClick={() => !deactivateSubmitting && setDeactivatingUser(null)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF', borderRadius: 18, width: '100%', maxWidth: 400,
+              boxShadow: '0 20px 60px rgba(10,20,32,0.25)', fontFamily: 'Inter, sans-serif', padding: 24,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
+              Deactivate {deactivatingUser.name}?
+            </div>
+            <div style={{ fontSize: 13, color: '#4A5A6B', marginTop: 10, lineHeight: 1.55 }}>
+              They'll stay in the user list but won't be able to sign in until an admin
+              reactivates them. This is reversible.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setDeactivatingUser(null)}
+                disabled={deactivateSubmitting}
+                style={{
+                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
+                  border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeactivateConfirmed}
+                disabled={deactivateSubmitting}
+                style={{
+                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
+                  border: 'none', background: '#8A5A00', color: '#fff',
+                  cursor: deactivateSubmitting ? 'not-allowed' : 'pointer', opacity: deactivateSubmitting ? 0.7 : 1,
+                }}
+              >
+                {deactivateSubmitting ? 'Deactivating…' : 'Deactivate'}
               </button>
             </div>
           </div>
