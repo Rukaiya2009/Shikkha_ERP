@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +26,7 @@ public class EmailService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String ZEPTOMAIL_API_URL = "https://api.zeptomail.com/v1.1/email";
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("MMMM d, yyyy");
 
     @Value("${zeptomail.token}")
     private String zeptoMailToken;
@@ -35,9 +40,6 @@ public class EmailService {
     @Value("${app.base-url:https://shikkha-erp.onrender.com}")
     private String baseUrl;
 
-    // NEW: the frontend needs its own URL, separate from the backend baseUrl —
-    // invite links must point users at a page in the React app (where a
-    // "Set your password" screen can exist), not at a bare backend API route.
     @Value("${app.frontend-url:https://shikkha-erp.vercel.app}")
     private String frontendUrl;
 
@@ -88,58 +90,142 @@ public class EmailService {
         }
     }
 
+    // ==================== v3.0 Demo workflow — 2 emails at submit, 1 at approve ====================
+
+    /** Branch 1 — confirmation to the person who submitted the form (text only, no links). */
     public void sendDemoSubmissionConfirmation(PendingDemoRequest request) {
         String subject = "Demo Request Received - ShikkhaERP";
         String body = String.format("""
             Dear %s,
 
-            Thank you for your interest in ShikkhaERP!
+            Thank you for submitting a demo request for ShikkhaERP!
 
-            We have received your demo request for %s.
+            We have received your application for %s.
             Your request ID is: %s
 
-            Our team will review your request and get back to you within 24-48 hours.
+            Our team will review it within 72 hours and contact the school to
+            finalise the super admin details.
+
+            No action is required from you at this time.
 
             Best regards,
             ShikkhaERP Team
 
-            Need help? Contact us at support@shikkhaerp.com
+            Questions? Contact us at support@shikkhaerp.com
             """,
-            request.getSuperAdminName(),
+            safe(request.getRequesterName(), "Applicant"),
             request.getSchoolName(),
             request.getUuid()
         );
-        sendEmail(request.getSuperAdminEmail(), subject, body);
-        log.info("📧 Demo submission confirmation sent to: {}", request.getSuperAdminEmail());
+        sendEmail(request.getRequesterEmail(), subject, body);
+        log.info("📧 Demo submission confirmation sent to requester: {}", request.getRequesterEmail());
     }
 
-    public void sendDemoApprovalNotification(PendingDemoRequest request, String password) {
-        String subject = "Demo Request Approved - ShikkhaERP";
+    /** Branch 2 — notification to the ITDataScience developer with the app approval link. */
+    public void sendAdminNotification(PendingDemoRequest request) {
+        String subject = "🔔 New Demo Request - " + request.getSchoolName();
+        String appApprovalLink = frontendUrl + "/app/approve/" + request.getUuid();
+        String rejectLink = baseUrl + "/api/demo/reject?token=" + request.getRejectionToken();
+
         String body = String.format("""
-            Dear %s,
+            Dear ITDataScience Team,
 
-            Congratulations! Your demo request for %s has been APPROVED.
+            A new ShikkhaERP demo request has been submitted and is pending review.
 
-            Your temporary login credentials:
-            URL: %s
+            📊 School Details:
+            Name:    %s
+            Type:    %s
+            Branch:  %s
+            Address: %s
+            Phone:   %s
+            Email:   %s
+
+            👤 Requester:
+            Name:  %s
             Email: %s
-            Password: %s
+            Phone: %s
 
-            Please login and change your password immediately.
+            🔗 Review and create this school (login required):
+            %s
+
+            You will need to:
+            1. Call the school using the phone number above
+            2. Obtain the super admin's email address
+            3. Enter it on the approval page
+            4. Select approval notes (preset or custom)
+            5. Click "Create School"
+
+            To reject without opening the app:
+            %s
+
+            Request ID: %s
+            This request expires in 7 days.
+
+            ShikkhaERP System
+            """,
+            request.getSchoolName(),
+            safe(request.getSchoolType(), "HIGH_SCHOOL"),
+            safe(request.getBranch(), "—"),
+            safe(request.getSchoolAddress(), "—"),
+            safe(request.getSchoolPhone(), "—"),
+            safe(request.getSchoolEmail(), "—"),
+            safe(request.getRequesterName(), "—"),
+            safe(request.getRequesterEmail(), "—"),
+            safe(request.getRequesterPhone(), "—"),
+            appApprovalLink,
+            rejectLink,
+            request.getUuid()
+        );
+        sendEmail(adminEmail, subject, body);
+        log.info("📧 Developer notification sent to: {}", adminEmail);
+    }
+
+    /** Branch 3 — login/setup link to the super admin, sent after approval (includes notes). */
+    public void sendSuperAdminLoginEmail(String superAdminEmail, String schoolName,
+                                         String token, String notes, LocalDateTime trialEnd) {
+        String encodedEmail = URLEncoder.encode(superAdminEmail, StandardCharsets.UTF_8);
+        String loginLink = frontendUrl + "/login?email=" + encodedEmail + "&token=" + token;
+        String trialEndStr = trialEnd != null ? trialEnd.format(DATE_FMT) : "in 30 days";
+        String note = (notes != null && !notes.isBlank())
+            ? notes
+            : "Congratulations! Your school has been approved for a 30-day free trial of ShikkhaERP.";
+
+        String subject = "🎉 Your School is Approved — Set Up Your Admin Account";
+        String body = String.format("""
+            Dear Super Admin,
+
+            %s
+
+            You have been registered as the Super Administrator of %s.
+
+            🔑 Set up your admin account using the link below:
+            %s
+
+            On that page:
+            • Your email is already filled in (you cannot change it)
+            • Enter a password of your choice
+            • Confirm your password
+            • Click "Create Account & Sign In"
+
+            You will then be taken directly to your school's dashboard.
+
+            ⏳ Your 30-day free trial expires on %s.
+
+            Need help? Contact support@shikkhaerp.com
 
             Best regards,
             ShikkhaERP Team
             """,
-            request.getSuperAdminName(),
-            request.getSchoolName(),
-            baseUrl,
-            request.getSuperAdminEmail(),
-            password
+            note,
+            schoolName,
+            loginLink,
+            trialEndStr
         );
-        sendEmail(request.getSuperAdminEmail(), subject, body);
-        log.info("📧 Demo approval notification sent to: {}", request.getSuperAdminEmail());
+        sendEmail(superAdminEmail, subject, body);
+        log.info("📧 Super admin login email sent to: {}", superAdminEmail);
     }
 
+    /** Rejection notice to the requester. */
     public void sendDemoRejectionNotification(PendingDemoRequest request, String reason) {
         String subject = "Demo Request Status Update - ShikkhaERP";
         String body = String.format("""
@@ -147,7 +233,8 @@ public class EmailService {
 
             Thank you for your interest in ShikkhaERP.
 
-            We regret to inform you that your demo request for %s has been REJECTED.
+            After reviewing your application for %s, we are unable to proceed at
+            this time.
 
             Reason: %s
 
@@ -156,45 +243,15 @@ public class EmailService {
             Best regards,
             ShikkhaERP Team
             """,
-            request.getSuperAdminName(),
+            safe(request.getRequesterName(), "Applicant"),
             request.getSchoolName(),
-            reason
+            safe(reason, "No reason provided")
         );
-        sendEmail(request.getSuperAdminEmail(), subject, body);
-        log.info("📧 Demo rejection notification sent to: {}", request.getSuperAdminEmail());
+        sendEmail(request.getRequesterEmail(), subject, body);
+        log.info("📧 Demo rejection notification sent to requester: {}", request.getRequesterEmail());
     }
 
-    public void sendAdminNotification(PendingDemoRequest request) {
-        String subject = "🔔 New Demo Request - " + request.getSchoolName();
-        String body = String.format("""
-            New demo request received!
-
-            School: %s
-            Address: %s
-            Phone: %s
-            Email: %s
-            Super Admin: %s
-            Super Admin Email: %s
-
-            Request ID: %s
-
-            ── One-click actions (valid for 7 days) ──
-            ✅ APPROVE: %s/api/demo/approve?token=%s
-            ❌ REJECT:  %s/api/demo/reject?token=%s
-            """,
-            request.getSchoolName(),
-            request.getSchoolAddress(),
-            request.getSchoolPhone(),
-            request.getSchoolEmail(),
-            request.getSuperAdminName(),
-            request.getSuperAdminEmail(),
-            request.getUuid(),
-            baseUrl, request.getApprovalToken(),
-            baseUrl, request.getRejectionToken()
-        );
-        sendEmail(adminEmail, subject, body);
-        log.info("📧 Admin notification sent to: {}", adminEmail);
-    }
+    // ==================== Existing account emails (unchanged) ====================
 
     public void sendPasswordResetEmail(String email, String resetToken) {
         String subject = "Password Reset Request - ShikkhaERP";
@@ -268,13 +325,6 @@ public class EmailService {
         log.info("📧 Welcome email sent to: {}", email);
     }
 
-    // ==================== NEW: user invitation (secure, token-based) ====================
-    // Unlike sendWelcomeEmail() above (which puts a plaintext password in the
-    // email — the old pattern), this sends a link to a frontend page where the
-    // invited person sets their OWN password. The admin who created the
-    // account never sees or sets it. Links to the frontend app, not the
-    // backend API, since a real page needs to render there to collect the
-    // new password and call /auth/setup-password.
     public void sendUserInvitation(String email, String name, String token) {
         String subject = "You've been invited to ShikkhaERP";
         String body = String.format("""
@@ -297,5 +347,9 @@ public class EmailService {
         );
         sendEmail(email, subject, body);
         log.info("📧 User invitation sent to: {}", email);
+    }
+
+    private String safe(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value;
     }
 }

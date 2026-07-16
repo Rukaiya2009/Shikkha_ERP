@@ -9,6 +9,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * v3.0 — Simplified Get-Free-Demo workflow.
+ *
+ * The public stepper now collects:
+ *   • School info (name, type[fixed HIGH_SCHOOL], branch, address, phone, email)
+ *   • Requester info ("Your Information": name, email, phone)
+ *
+ * The super-admin email is NO LONGER collected here — the developer enters it
+ * in the Main App after calling the school. Student/teacher counts are removed.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,9 +29,9 @@ public class DemoRequestDTO {
     @Valid
     private School school;
 
-    @NotNull(message = "Super admin information is required")
+    @NotNull(message = "Requester information is required")
     @Valid
-    private SuperAdmin superAdmin;
+    private Requester requester;
 
     @Data
     @Builder
@@ -30,6 +40,12 @@ public class DemoRequestDTO {
     public static class School {
         @NotBlank(message = "School name is required")
         private String name;
+
+        /** Fixed to "HIGH_SCHOOL" by the UI, but kept flexible server-side. */
+        private String type;
+
+        /** New in v3.0 — e.g. "Main Campus". */
+        private String branch;
 
         @NotBlank(message = "Address is required")
         private String address;
@@ -40,66 +56,33 @@ public class DemoRequestDTO {
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         private String email;
-
-        private String type;
-
-        private Integer numberOfStudents;
-
-        private Integer numberOfTeachers;
     }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SuperAdmin {
-        @NotBlank(message = "Super admin name is required")
+    public static class Requester {
+        @NotBlank(message = "Your name is required")
         private String name;
 
-        @NotBlank(message = "Super admin email is required")
+        @NotBlank(message = "Your email is required")
         @Email(message = "Invalid email format")
         private String email;
 
         private String phone;
     }
 
-    public String getSchoolName() {
-        return school != null ? school.getName() : null;
-    }
+    // ── Convenience accessors used by the service/email layer ────────────────
 
-    public String getAddress() {
-        return school != null ? school.getAddress() : null;
-    }
+    public String getSchoolName()   { return school != null ? school.getName() : null; }
+    public String getSchoolType()   { return school != null ? school.getType() : null; }
+    public String getBranch()       { return school != null ? school.getBranch() : null; }
+    public String getAddress()      { return school != null ? school.getAddress() : null; }
+    public String getPhone()        { return school != null ? school.getPhone() : null; }
+    public String getEmail()        { return school != null ? school.getEmail() : null; }
 
-    public String getPhone() {
-        return school != null ? school.getPhone() : null;
-    }
-
-    public String getEmail() {
-        return school != null ? school.getEmail() : null;
-    }
-
-    public String getType() {
-        return school != null ? school.getType() : null;
-    }
-
-    public Integer getStudents() {
-        return school != null ? school.getNumberOfStudents() : null;
-    }
-
-    public Integer getTeachers() {
-        return school != null ? school.getNumberOfTeachers() : null;
-    }
-
-    public String getSuperAdminName() {
-        return superAdmin != null ? superAdmin.getName() : null;
-    }
-
-    public String getSuperAdminEmail() {
-        return superAdmin != null ? superAdmin.getEmail() : null;
-    }
-
-    public String getSuperAdminPhone() {
-        return superAdmin != null ? superAdmin.getPhone() : null;
-    }
+    public String getRequesterName()  { return requester != null ? requester.getName() : null; }
+    public String getRequesterEmail() { return requester != null ? requester.getEmail() : null; }
+    public String getRequesterPhone() { return requester != null ? requester.getPhone() : null; }
 }

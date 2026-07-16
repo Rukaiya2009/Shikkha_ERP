@@ -26,6 +26,7 @@ public class PendingDemoRequest {
     @Column(unique = true, nullable = false)
     private String uuid;
 
+    // ── School information ───────────────────────────────────────────────────
     @Column(name = "school_name", nullable = false)
     private String schoolName;
 
@@ -41,21 +42,31 @@ public class PendingDemoRequest {
     @Column(name = "school_type")
     private String schoolType;
 
-    @Column(name = "number_of_students")
-    private Integer numberOfStudents;
+    /** New in v3.0 — school branch, e.g. "Main Campus". */
+    @Column(name = "branch")
+    private String branch;
 
-    @Column(name = "number_of_teachers")
-    private Integer numberOfTeachers;
+    // ── Requester information ("Your Information" step) ───────────────────────
+    @Column(name = "requester_name")
+    private String requesterName;
 
-    @Column(name = "super_admin_name", nullable = false)
+    @Column(name = "requester_email")
+    private String requesterEmail;
+
+    @Column(name = "requester_phone")
+    private String requesterPhone;
+
+    // ── Super admin (entered by the developer at approval time — nullable) ────
+    @Column(name = "super_admin_name")
     private String superAdminName;
 
-    @Column(name = "super_admin_email", nullable = false)
+    @Column(name = "super_admin_email")
     private String superAdminEmail;
 
     @Column(name = "super_admin_phone")
     private String superAdminPhone;
 
+    // ── Lifecycle ────────────────────────────────────────────────────────────
     @Column(name = "status")
     private String status = "PENDING";
 
@@ -81,6 +92,10 @@ public class PendingDemoRequest {
 
     @Column(name = "reject_reason")
     private String rejectReason;
+
+    /** Optional approval/rejection note written by the developer. */
+    @Column(name = "notes", columnDefinition = "text")
+    private String notes;
 
     @Column(name = "request_data", columnDefinition = "text")
     private String requestData;
