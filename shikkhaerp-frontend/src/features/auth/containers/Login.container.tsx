@@ -8,6 +8,7 @@ const LoginContainer: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email');
+  const tokenParam = searchParams.get('token'); // secure setup token from the approval email
 
   const { login, isLoading, error, clearError } = useAuth();
 
@@ -23,22 +24,29 @@ const LoginContainer: React.FC = () => {
   const [setupError, setSetupError] = useState<string | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
 
+  // The setup screen is driven by the email in the link; the token verifies it.
   const isFirstTime = !!emailParam;
 
-  // Pre-fill email if param exists
   useEffect(() => {
-    if (emailParam) {
-      setSetupEmail(emailParam);
-    }
+    if (emailParam) setSetupEmail(emailParam);
   }, [emailParam]);
 
-  // Normal login handler (unchanged)
+  const redirectForRole = (role?: string) => {
+    const r = (role || 'student').toLowerCase();
+    if (r === 'super_admin') return '/welcome';
+    if (r === 'school_admin') return '/school-admin/dashboard';
+    if (r === 'teacher') return '/teacher/dashboard';
+    if (r === 'parent') return '/parent/dashboard';
+    if (r === 'developer') return '/developer/dashboard';
+    return '/student/dashboard';
+  };
+
+  // Normal login handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
     try {
       const response = await login(email, password);
-      console.log('Login response:', response);
 
       const userData = {
         id: response.user.id,
@@ -52,26 +60,21 @@ const LoginContainer: React.FC = () => {
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
 
-        let redirectPath = '/student/dashboard';
-        const role = userData.role;
-
-        if (role === 'super_admin') redirectPath = '/super-admin/dashboard';
-        else if (role === 'school_admin') redirectPath = '/school-admin/dashboard';
-        else if (role === 'teacher') redirectPath = '/teacher/dashboard';
-        else if (role === 'parent') redirectPath = '/parent/dashboard';
-        else if (role === 'developer') redirectPath = '/developer/dashboard';  // NEW
-        else redirectPath = '/student/dashboard';
-
-      window.location.href = redirectPath;
+      window.location.href = redirectForRole(userData.role);
     } catch (err) {
       console.error('Login failed:', err);
     }
   };
 
-  // First-time password setup handler
+  // First-time password setup handler (token-based, matches secure backend)
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setSetupError(null);
+
+    if (!tokenParam) {
+      setSetupError('This setup link is missing its security token. Please use the link from your approval email.');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setSetupError('Passwords do not match.');
       return;
@@ -84,24 +87,15 @@ const LoginContainer: React.FC = () => {
     setSetupLoading(true);
     try {
       const response = await axiosInstance.post(API_ENDPOINTS.AUTH.SETUP_PASSWORD, {
-        email: setupEmail,
-        password: newPassword,
+        token: tokenParam,
+        newPassword,
       });
-      // Assuming backend returns tokens and user data
       const { accessToken, refreshToken, user } = response.data;
       localStorage.setItem('accessToken', accessToken);
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       if (user) localStorage.setItem('user', JSON.stringify(user));
 
-      // Redirect to appropriate dashboard
-      const role = user?.role?.toLowerCase() || 'student';
-      let redirectPath = '/student/dashboard';
-      if (role === 'super_admin') redirectPath = '/super-admin/dashboard';
-      else if (role === 'school_admin') redirectPath = '/school-admin/dashboard';
-      else if (role === 'teacher') redirectPath = '/teacher/dashboard';
-      else if (role === 'parent') redirectPath = '/parent/dashboard';
-      else if (role === 'developer') redirectPath = '/developer/dashboard';  // NEW
-      window.location.href = redirectPath;
+      window.location.href = redirectForRole(user?.role);
     } catch (err: any) {
       setSetupError(err.response?.data?.message || 'Failed to set up password. Please try again.');
     } finally {
@@ -157,9 +151,7 @@ const LoginContainer: React.FC = () => {
             </div>
 
             {setupError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
-                {setupError}
-              </div>
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{setupError}</div>
             )}
 
             <button
@@ -175,7 +167,7 @@ const LoginContainer: React.FC = () => {
     );
   }
 
-  // ── Normal login UI (your existing design) ──────────────────────
+  // ── Normal login UI ──────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
@@ -220,9 +212,7 @@ const LoginContainer: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
-              {error}
-            </div>
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>
           )}
 
           <button

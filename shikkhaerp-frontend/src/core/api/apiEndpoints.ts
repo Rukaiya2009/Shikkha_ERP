@@ -4,13 +4,13 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
-    SETUP_PASSWORD: '/auth/setup-password', // NEW
+    SETUP_PASSWORD: '/auth/setup-password', // token-based first-time setup
   },
   DEMO: {
-    REQUEST: '/demo/request',          // POST
-    PENDING: '/demo/request',          // GET with UUID
-    APPROVE: '/demo/approve',          // POST with UUID
-    REJECT: '/demo/reject',            // POST with UUID
+    REQUEST: '/demo/request',          // POST — submit demo request
+    PENDING: '/demo',                  // GET  — /demo/{uuid} fetch pending request
+    APPROVE: '/demo/approve',          // POST — /demo/approve/{uuid} { superAdminEmail, notes }
+    REJECT: '/demo/reject',            // POST — /demo/reject/{uuid} { reason }
   },
   TRIAL: {
     INFO: '/user/trial',               // GET – returns trial info
@@ -23,9 +23,9 @@ export const API_ENDPOINTS = {
     PARENT: '/dashboard/parent',
   },
   USERS: {
-    BASE: '/users', // matches backend @RequestMapping("/users") after the /v1 fix
+    BASE: '/users',
   },
   LOCK: {
-    BASE: '/lock', // POST /lock/{id}/unlock?email=&reason= — clears an account lockout
+    BASE: '/lock',
   },
 } as const;
