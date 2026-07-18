@@ -4,7 +4,8 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
-    SETUP_PASSWORD: '/auth/setup-password', // token-based first-time setup
+    SETUP_PASSWORD: '/auth/setup-password', // NEW
+    CHANGE_PASSWORD: '/auth/change-password', // NEW — authenticated, self-service
   },
   DEMO: {
     REQUEST: '/demo/request',          // POST — submit demo request

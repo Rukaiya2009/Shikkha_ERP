@@ -39,6 +39,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // MUST come before "/auth/**": this specific path needs a
+                // logged-in user, so it can't fall under the public wildcard.
+                .requestMatchers("/auth/change-password").authenticated()
                 .requestMatchers(
                     "/auth/**",
                     "/public/**",
@@ -61,12 +64,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            // Any Vercel deployment (covers the app, the marketing site, and
-            // every auto-generated preview/deployment URL, which look like
-            // https://shikkha-<hash>-<account>-projects.vercel.app).
-            // allowedOriginPatterns supports wildcards even with credentials.
             "https://*.vercel.app",
-            // Local development
             "http://localhost:3000",
             "http://localhost:5173",
             "http://localhost:8080"

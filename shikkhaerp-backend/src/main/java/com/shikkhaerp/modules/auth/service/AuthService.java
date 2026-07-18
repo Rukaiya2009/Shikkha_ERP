@@ -214,7 +214,27 @@ public class AuthService {
             .redirectUrl(getDashboardUrl(user.getRole()))
             .build();
     }
-    
+    // Self-service password change for the CURRENTLY AUTHENTICATED user.
+// `email` comes from the JWT (Authentication.getName()) in the controller —
+// NEVER from the request body — for the same reason setupPassword() was
+// hardened: the caller must not be able to name whose password they change.
+@Transactional
+public void changePassword(String email, String oldPassword, String newPassword) {
+    User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+        throw new RuntimeException("Current password is incorrect");
+    }
+
+    if (passwordEncoder.matches(newPassword, user.getPassword())) {
+        throw new RuntimeException("New password must be different from your current password");
+    }
+
+    user.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(user);
+    log.info("Password changed for: {}", email);
+}
     @Transactional
     public LogoutResponse logout(LogoutRequest request) {
         String refreshToken = request.getRefreshToken();
