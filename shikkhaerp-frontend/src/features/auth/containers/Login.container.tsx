@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { axiosInstance } from '../../../core/api/axiosInstance';
 import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
+import { LoginForm } from '../components/LoginForm.present';
 
+/**
+ * Login + first-time password setup.
+ *
+ * Normal login renders the branded "Welcome Back" LoginForm (LoginForm.present).
+ * The token-based setup-password flow (super-admin onboarding link from the
+ * demo-approval email, carrying ?email= for prefill and ?token= for verification)
+ * is preserved exactly — do NOT replace this with a plain login-only container,
+ * or that onboarding link stops working.
+ */
 const LoginContainer: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email');
   const tokenParam = searchParams.get('token'); // secure setup token from the approval email
 
   const { login, isLoading, error, clearError } = useAuth();
-
-  // Normal login state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   // First-time setup state
   const [setupEmail, setSetupEmail] = useState(emailParam || '');
@@ -41,9 +45,8 @@ const LoginContainer: React.FC = () => {
     return '/student/dashboard';
   };
 
-  // Normal login handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Normal login — called by LoginForm with (email, password).
+  const handleLogin = async (email: string, password: string) => {
     clearError();
     try {
       const response = await login(email, password);
@@ -63,10 +66,11 @@ const LoginContainer: React.FC = () => {
       window.location.href = redirectForRole(userData.role);
     } catch (err) {
       console.error('Login failed:', err);
+      // error state is set in the auth store; LoginForm renders it.
     }
   };
 
-  // First-time password setup handler (token-based, matches secure backend)
+  // First-time password setup (token-based, matches secure backend).
   const handleSetupPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setSetupError(null);
@@ -103,63 +107,63 @@ const LoginContainer: React.FC = () => {
     }
   };
 
-  // ── First-time setup UI ──────────────────────────────────────────
+  // ── First-time setup UI (brand-aligned) ─────────────────────────
   if (isFirstTime) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-6">
-            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-3">
-              <span className="text-2xl font-bold text-white">SE</span>
+      <div className="flex min-h-screen items-center justify-center bg-[#F0F9FF] p-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-modal">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand">
+              <span className="font-display text-xl font-extrabold text-white">SE</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">Welcome to ShikkhaERP</h1>
-            <p className="text-gray-500 text-sm">Set up your admin account</p>
+            <h1 className="font-display text-2xl font-extrabold text-ink">Welcome to ShikkhaERP</h1>
+            <p className="text-sm text-slatesoft">Set up your admin account</p>
           </div>
 
           <form onSubmit={handleSetupPassword}>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="mb-1 block text-sm font-semibold text-ink">Email Address</label>
               <input
                 type="email"
                 value={setupEmail}
                 readOnly
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                className="w-full cursor-not-allowed rounded-lg border border-linestrong bg-surfaceinset px-4 py-2.5 text-slatesoft"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Create Password</label>
+              <label className="mb-1 block text-sm font-semibold text-ink">Create Password</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full rounded-lg border border-linestrong px-4 py-2.5 outline-none focus:border-brand focus:ring-4 focus:ring-brand-sky/30"
                 required
                 minLength={6}
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <label className="mb-1 block text-sm font-semibold text-ink">Confirm Password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full rounded-lg border border-linestrong px-4 py-2.5 outline-none focus:border-brand focus:ring-4 focus:ring-brand-sky/30"
                 required
               />
             </div>
 
             {setupError && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{setupError}</div>
+              <div className="mb-4 rounded-lg bg-[#FBEAE9] p-3 text-sm text-[#B3261E]">{setupError}</div>
             )}
 
             <button
               type="submit"
               disabled={setupLoading}
-              className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              className="w-full rounded-xl bg-brand py-2.5 font-semibold text-white transition hover:bg-brand-deep disabled:opacity-50"
             >
-              {setupLoading ? 'Setting up...' : 'Create Account & Sign In'}
+              {setupLoading ? 'Setting up…' : 'Create Account & Sign In'}
             </button>
           </form>
         </div>
@@ -167,71 +171,8 @@ const LoginContainer: React.FC = () => {
     );
   }
 
-  // ── Normal login UI ──────────────────────────────────────────────
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-3">
-            <span className="text-2xl font-bold text-white">SE</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800">ShikkhaERP</h1>
-          <p className="text-gray-500 text-sm">School Management System</p>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-              >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 mb-4"
-          >
-            {isLoading ? 'Logging in...' : 'Sign In'}
-          </button>
-
-          <div className="text-center">
-            <a href="/register" className="text-blue-600 hover:underline text-sm">
-              Create New Account
-            </a>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  // ── Normal login: the branded "Welcome Back" form ────────────────
+  return <LoginForm onSubmit={handleLogin} isLoading={isLoading} error={error} />;
 };
 
 export default LoginContainer;
