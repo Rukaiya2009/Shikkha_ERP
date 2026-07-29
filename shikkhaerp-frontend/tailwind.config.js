@@ -1,47 +1,58 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Brand identity (unchanged) — deep blue chrome + sky accent
-        primary: {
-          50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-          400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-          800: '#1e40af', 900: '#1e3a8a',
+        // ── New palette (navy → ocean → teal, white canvas, red alert) ──
+        ink: '#0A1128',            // headings / near-black navy
+        brand: {
+          DEFAULT: '#034078',      // primary
+          deep: '#001F54',         // deepest navy (sidebar, gradients)
+          sky: '#BFDBF7',          // soft highlight (avatars, active nav)
         },
-        brand: { DEFAULT: '#1E3A8A', deep: '#152C6B', sky: '#81D5FF' },
-        // Shared "ink" text + surfaces, taken from the polished user-management
-        // components so every dashboard matches them exactly.
-        ink: '#142334',
-        slatesoft: '#4A5A6B',
-        line: '#E5EDF5',
-        linestrong: '#DCE7F0',
-        surfaceinset: '#F8FBFE',
+        teal: '#1282A2',
+        ocean: '#3E92CC',
+        softblue: '#BFDBF7',
+        lavender: '#E1E5F2',
+        alert: '#D8315B',          // danger / alerts
+        success: '#1B8A5A',
+        warning: '#E0A800',
+        slatesoft: '#51607A',      // secondary text
+        line: '#E6ECF4',
+        linestrong: '#D6E0EC',
+        surfaceinset: '#F5F8FC',
         surfacefield: '#FAFCFE',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        display: ['Manrope', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 1px 3px rgba(20,35,52,0.06), 0 1px 2px rgba(20,35,52,0.04)',
-        'card-hover': '0 10px 30px rgba(20,35,52,0.10)',
-        modal: '0 20px 60px rgba(10,20,32,0.25)',
+        card: '0 1px 2px rgba(10,17,40,0.04), 0 4px 16px rgba(10,17,40,0.05)',
+        'card-hover': '0 12px 34px rgba(3,64,120,0.14)',
+        modal: '0 24px 70px rgba(10,17,40,0.28)',
+        glow: '0 0 0 4px rgba(62,146,204,0.12)',
+      },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(135deg, #001F54 0%, #034078 55%, #1282A2 100%)',
+        'sky-fade': 'linear-gradient(180deg, #F5F8FC 0%, #FFFFFF 100%)',
       },
       keyframes: {
         shimmer: { '100%': { transform: 'translateX(100%)' } },
-        'fade-in-up': {
-          '0%': { opacity: '0', transform: 'translateY(8px)' },
+        'fade-up': {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'draw': { '0%': { strokeDashoffset: '1000' }, '100%': { strokeDashoffset: '0' } },
+        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+        pulse: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.5' } },
       },
       animation: {
         shimmer: 'shimmer 1.5s infinite',
-        'fade-in-up': 'fade-in-up 0.4s ease-out forwards',
+        'fade-up': 'fade-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
+        draw: 'draw 1.4s ease-out forwards',
+        float: 'float 5s ease-in-out infinite',
       },
     },
   },
