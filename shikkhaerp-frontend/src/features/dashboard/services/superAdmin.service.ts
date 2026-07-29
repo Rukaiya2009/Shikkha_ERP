@@ -1,28 +1,26 @@
 import { axiosInstance } from '../../../core/api/axiosInstance';
+import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
-// NOTE: the `token` argument is no longer used — axiosInstance's request
-// interceptor attaches the Bearer token automatically. It is kept as an
-// optional parameter so existing call sites (which still pass a token)
-// continue to compile. Those call sites can be cleaned up separately.
+const BASE = API_ENDPOINTS.DASHBOARD.SUPER_ADMIN; // /v1/dashboard/superadmin
+
+// Responses are wrapped by the backend as { success, message, data, ... },
+// so we unwrap `.data.data` to hand callers just the payload.
 const superAdminService = {
   getStats: async (_token?: string) => {
-    const response = await axiosInstance.get('/dashboard/superadmin/stats');
-    return response.data;
+    const response = await axiosInstance.get(`${BASE}/stats`);
+    return response.data?.data ?? response.data;
   },
-
   getSchools: async (_token?: string) => {
-    const response = await axiosInstance.get('/dashboard/superadmin/schools');
-    return response.data;
+    const response = await axiosInstance.get(`${BASE}/schools`);
+    return response.data?.data ?? response.data;
   },
-
   getUsers: async (_token?: string) => {
-    const response = await axiosInstance.get('/dashboard/superadmin/users');
-    return response.data;
+    const response = await axiosInstance.get(`${BASE}/users`);
+    return response.data?.data ?? response.data;
   },
-
   getSystemHealth: async (_token?: string) => {
-    const response = await axiosInstance.get('/dashboard/superadmin/system-health');
-    return response.data;
+    const response = await axiosInstance.get(`${BASE}/system-health`);
+    return response.data?.data ?? response.data;
   },
 };
 

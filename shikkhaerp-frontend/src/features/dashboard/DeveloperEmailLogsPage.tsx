@@ -1,32 +1,38 @@
 import React from 'react';
+import { PageHeader, SectionCard, Badge } from '../../shared/ui';
+import type { BadgeTone } from '../../shared/ui';
+import { Mail } from 'lucide-react';
 
-const DeveloperEmailLogsPage: React.FC = () => {
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">📧 Email Logs</h1>
-        <p className="text-gray-500 mt-2">Monitor recent email activity and delivery status.</p>
-      </div>
+const logs: { subject: string; recipient: string; status: string; tone: BadgeTone }[] = [
+  { subject: 'Welcome email', recipient: 'admin@school.com', status: 'Delivered', tone: 'success' },
+  { subject: 'Password reset', recipient: 'teacher@school.com', status: 'Failed', tone: 'danger' },
+  { subject: 'Demo request', recipient: 'developer@shikkhaerp.com', status: 'Delivered', tone: 'success' },
+];
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="space-y-3">
-          {[
-            { subject: 'Welcome email', recipient: 'admin@school.com', status: 'Delivered' },
-            { subject: 'Password reset', recipient: 'teacher@school.com', status: 'Failed' },
-            { subject: 'Demo request', recipient: 'developer@shikkhaerp.com', status: 'Delivered' },
-          ].map((log) => (
-            <div key={log.subject} className="flex items-center justify-between border rounded-lg p-4">
+const DeveloperEmailLogsPage: React.FC = () => (
+  <div className="mx-auto max-w-5xl">
+    <PageHeader
+      title="Email logs"
+      subtitle="Monitor recent email activity and delivery status."
+      icon={<Mail className="h-5 w-5" />}
+    />
+    <SectionCard title="Recent emails" flush>
+      <ul className="divide-y divide-line">
+        {logs.map((log) => (
+          <li key={log.subject} className="flex items-center justify-between gap-3 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surfaceinset text-slatesoft"><Mail className="h-4 w-4" /></div>
               <div>
-                <p className="font-medium text-gray-800">{log.subject}</p>
-                <p className="text-sm text-gray-500">To: {log.recipient}</p>
+                <p className="font-semibold text-ink">{log.subject}</p>
+                <p className="text-xs text-slatesoft">To: {log.recipient}</p>
               </div>
-              <span className="text-sm font-medium text-gray-600">{log.status}</span>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+            <Badge tone={log.tone} dot>{log.status}</Badge>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+  </div>
+);
 
 export default DeveloperEmailLogsPage;

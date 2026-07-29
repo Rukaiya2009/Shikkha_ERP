@@ -1,127 +1,106 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { PageHeader, StatCard, SectionCard, Badge } from '../../shared/ui';
+import { Code2, CheckSquare, Building2, Mail, ArrowRight, Server, Database, MailCheck } from 'lucide-react';
+
+const pending = [
+  { name: 'ABC School', when: '2 hours ago' },
+  { name: 'Dhaka Model School', when: '5 hours ago' },
+];
 
 const DeveloperDashboard: React.FC = () => {
   const { user } = useAuth();
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
-        <div className="flex items-center justify-between flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              👨‍💻 Developer Dashboard
-            </h1>
-            <p className="text-gray-500 mt-1">Welcome back, {user?.fullName || 'Developer'}!</p>
-          </div>
-          <div className="mt-2 sm:mt-0">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-              🔐 Developer Role
-            </span>
-          </div>
-        </div>
+    <div className="mx-auto max-w-5xl">
+      <PageHeader
+        title="Developer"
+        subtitle={`Welcome back${user?.fullName ? ', ' + user.fullName : ''}.`}
+        icon={<Code2 className="h-5 w-5" />}
+        actions={<Badge tone="purple" dot>Developer role</Badge>}
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Pending approvals" value={pending.length + 3}
+          icon={<CheckSquare className="h-5 w-5" />} accent="bg-brand/10 text-brand" />
+        <StatCard label="Active schools" value={12}
+          icon={<Building2 className="h-5 w-5" />} accent="bg-emerald-500/10 text-emerald-600" />
+        <StatCard label="Emails today" value={38}
+          icon={<Mail className="h-5 w-5" />} accent="bg-sky-500/10 text-sky-600" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pending Approvals Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">📋 Pending Approvals</h3>
-              <p className="text-gray-500 text-sm mt-1">
-                Review and approve new school demo requests
-              </p>
-            </div>
-            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full">
-              New
-            </span>
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <SectionCard
+          title="Pending approvals"
+          description="New school demo requests awaiting review"
+          actions={<Badge tone="info">New</Badge>}
+          flush
+        >
+          <ul className="divide-y divide-line">
+            {pending.map((p) => (
+              <li key={p.name} className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-sm font-semibold text-ink">{p.name}</span>
+                <span className="text-xs text-slatesoft">{p.when}</span>
+              </li>
+            ))}
+            <li className="px-5 py-3.5 text-sm text-slatesoft">+ 3 more pending</li>
+          </ul>
+          <div className="border-t border-line p-4">
+            <Link
+              to="/developer/approvals"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
+            >
+              View all requests <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between text-sm border-b pb-2">
-              <span className="text-gray-600">ABC School</span>
-              <span className="text-xs text-gray-400">2 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between text-sm border-b pb-2">
-              <span className="text-gray-600">Dhaka Model School</span>
-              <span className="text-xs text-gray-400">5 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">+ 3 more pending</span>
-            </div>
-          </div>
-          <Link
-            to="/app/approve"
-            className="mt-4 inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            View All Pending Requests
-          </Link>
-        </div>
+        </SectionCard>
 
-        {/* Quick Actions Card */}
-        <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-800">⚡ Quick Actions</h3>
-          <p className="text-gray-500 text-sm mt-1">
-            Common tasks for developers
-          </p>
-          <div className="mt-4 space-y-3">
-            <Link
-              to="/app/approve"
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition"
-            >
-              <span className="text-xl">✅</span>
+        <SectionCard title="Quick actions" description="Common developer tasks">
+          <div className="space-y-2">
+            <Link to="/developer/approvals" className="flex items-center gap-3 rounded-xl bg-surfaceinset p-3 transition-colors hover:bg-brand/5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand"><CheckSquare className="h-4 w-4" /></div>
               <div>
-                <p className="text-sm font-medium text-gray-800">Review Demo Requests</p>
-                <p className="text-xs text-gray-500">Approve or reject pending schools</p>
+                <p className="text-sm font-semibold text-ink">Review demo requests</p>
+                <p className="text-xs text-slatesoft">Approve or reject pending schools</p>
               </div>
             </Link>
-            <Link
-              to="/super-admin/dashboard"
-              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition"
-            >
-              <span className="text-xl">🏫</span>
+            <Link to="/developer/schools" className="flex items-center gap-3 rounded-xl bg-surfaceinset p-3 transition-colors hover:bg-brand/5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600"><Building2 className="h-4 w-4" /></div>
               <div>
-                <p className="text-sm font-medium text-gray-800">Manage Schools</p>
-                <p className="text-xs text-gray-500">View all schools in the system</p>
+                <p className="text-sm font-semibold text-ink">Manage schools</p>
+                <p className="text-xs text-slatesoft">View all schools in the system</p>
               </div>
             </Link>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <span className="text-xl">📧</span>
+            <Link to="/developer/email-logs" className="flex items-center gap-3 rounded-xl bg-surfaceinset p-3 transition-colors hover:bg-brand/5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600"><Mail className="h-4 w-4" /></div>
               <div>
-                <p className="text-sm font-medium text-gray-800">Email Logs</p>
-                <p className="text-xs text-gray-500">Check email delivery status</p>
+                <p className="text-sm font-semibold text-ink">Email logs</p>
+                <p className="text-xs text-slatesoft">Check email delivery status</p>
               </div>
-            </div>
+            </Link>
           </div>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* System Status */}
-      <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-800">🖥️ System Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">API Status</p>
-              <p className="text-xs text-green-600">Operational</p>
-            </div>
+      <div className="mt-4">
+        <SectionCard title="System status">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              { icon: <Server className="h-4 w-4" />, label: 'API', value: 'Operational', tone: 'success' as const },
+              { icon: <Database className="h-4 w-4" />, label: 'Database', value: 'Connected', tone: 'success' as const },
+              { icon: <MailCheck className="h-4 w-4" />, label: 'Email service', value: 'Configured', tone: 'warning' as const },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-3 rounded-xl border border-line bg-surfaceinset p-3">
+                <div className="text-slatesoft">{s.icon}</div>
+                <div>
+                  <p className="text-sm font-semibold text-ink">{s.label}</p>
+                  <Badge tone={s.tone} dot>{s.value}</Badge>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">Database</p>
-              <p className="text-xs text-green-600">Connected</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">Email Service</p>
-              <p className="text-xs text-yellow-600">Configured</p>
-            </div>
-          </div>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { axiosInstance } from '../../core/api/axiosInstance';
 import { API_ENDPOINTS } from '../../core/api/apiEndpoints';
 import { Button } from '../../shared/components/Button';
+import { PageHeader, SectionCard, Badge } from '../../shared/ui';
+import { UserPlus, GraduationCap, LayoutDashboard, Clock, AlertTriangle } from 'lucide-react';
 
 interface TrialInfo {
   schoolName: string;
@@ -24,28 +26,27 @@ const WelcomeDashboard: React.FC = () => {
         const response = await axiosInstance.get(API_ENDPOINTS.TRIAL.INFO);
         setTrialInfo(response.data);
         setError(null);
-      } catch (err: any) {
+      } catch {
         setError('Could not load trial information.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchTrialInfo();
   }, []);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand border-t-transparent" />
       </div>
     );
   }
 
   if (error || !trialInfo) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <p className="text-red-600">{error || 'No trial information available.'}</p>
+      <div className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-[#B3261E]">{error || 'No trial information available.'}</p>
       </div>
     );
   }
@@ -53,66 +54,48 @@ const WelcomeDashboard: React.FC = () => {
   const progress = ((trialInfo.totalDays - trialInfo.daysRemaining) / trialInfo.totalDays) * 100;
   const isExpiring = trialInfo.daysRemaining <= 7;
 
+  const quickCards = [
+    { icon: <UserPlus className="h-5 w-5" />, title: 'Add staff', desc: 'Invite teachers and administrators', cta: 'Get started' },
+    { icon: <GraduationCap className="h-5 w-5" />, title: 'Add students', desc: 'Enrol students in your school', cta: 'Get started' },
+    { icon: <LayoutDashboard className="h-5 w-5" />, title: 'Explore dashboard', desc: 'View insights and reports', cta: 'Go to dashboard' },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
-        <div className="flex items-center justify-between flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              👋 Welcome, {user?.fullName || 'Admin'}!
-            </h1>
-            <p className="text-gray-500 mt-1">{trialInfo.schoolName}</p>
-          </div>
-          <div className="mt-2 sm:mt-0">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              🕐 Free Trial
-            </span>
-          </div>
-        </div>
+    <div className="mx-auto max-w-4xl">
+      <PageHeader
+        title={`Welcome${user?.fullName ? ', ' + user.fullName : ''}!`}
+        subtitle={trialInfo.schoolName}
+        actions={<Badge tone="info" dot><Clock className="mr-1 inline h-3 w-3" /> Free trial</Badge>}
+      />
 
-        <div className="mt-6">
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>{trialInfo.daysRemaining} days left</span>
-            <span>Expires: {new Date(trialInfo.trialEnd).toLocaleDateString()}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3 mt-1">
-            <div
-              className={`h-3 rounded-full transition-all duration-500 ${
-                isExpiring ? 'bg-red-500' : 'bg-blue-600'
-              }`}
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            />
-          </div>
-          {isExpiring && (
-            <p className="text-red-600 text-sm mt-2 font-semibold">
-              ⚠️ Your trial ends in {trialInfo.daysRemaining} days. Please upgrade to continue.
-            </p>
-          )}
+      <SectionCard className="mb-6">
+        <div className="flex items-center justify-between text-sm text-slatesoft">
+          <span className="font-semibold text-ink">{trialInfo.daysRemaining} days left</span>
+          <span>Expires {new Date(trialInfo.trialEnd).toLocaleDateString()}</span>
         </div>
-      </div>
+        <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-line">
+          <div
+            className={`h-3 rounded-full transition-all duration-500 ${isExpiring ? 'bg-red-500' : 'bg-brand'}`}
+            style={{ width: `${Math.min(progress, 100)}%` }}
+          />
+        </div>
+        {isExpiring && (
+          <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#B3261E]">
+            <AlertTriangle className="h-4 w-4" />
+            Your trial ends in {trialInfo.daysRemaining} days — upgrade to keep your data and access.
+          </p>
+        )}
+      </SectionCard>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-800">👤 Add Staff</h3>
-          <p className="text-gray-500 text-sm mt-1">Invite teachers and administrators</p>
-          <Button variant="primary" size="sm" className="mt-4">
-            Get Started
-          </Button>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-800">📚 Add Students</h3>
-          <p className="text-gray-500 text-sm mt-1">Enroll students in your school</p>
-          <Button variant="primary" size="sm" className="mt-4">
-            Get Started
-          </Button>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-800">📊 Explore Dashboard</h3>
-          <p className="text-gray-500 text-sm mt-1">View insights and reports</p>
-          <Button variant="primary" size="sm" className="mt-4">
-            Go to Dashboard
-          </Button>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {quickCards.map((c) => (
+          <div key={c.title} className="rounded-2xl border border-line bg-white p-6 shadow-card transition-all hover:shadow-card-hover">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">{c.icon}</div>
+            <h3 className="mt-4 font-display text-base font-bold text-ink">{c.title}</h3>
+            <p className="mt-1 text-sm text-slatesoft">{c.desc}</p>
+            <Button variant="primary" size="sm" className="mt-4">{c.cta}</Button>
+          </div>
+        ))}
       </div>
     </div>
   );

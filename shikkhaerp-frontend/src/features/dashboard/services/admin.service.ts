@@ -1,76 +1,44 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+import { axiosInstance } from '../../../core/api/axiosInstance';
+import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
+const BASE = API_ENDPOINTS.DASHBOARD.SCHOOL_ADMIN; // /v1/dashboard/admin
+
+// Rewritten to use axiosInstance (was hardcoded to http://localhost:8080, which
+// could never reach the Render backend) and to unwrap the { success, data }
+// envelope. The `token` arg is kept for call-site compatibility but unused —
+// the axios interceptor attaches the Bearer token automatically.
 const adminService = {
-  // Get School Summary Stats
-  getSummary: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/summary`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getSummary: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/summary`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Recent Activities
-  getRecentActivities: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/recent-activities`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getRecentActivities: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/recent-activities`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Enrollment Trend
-  getEnrollmentTrend: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/enrollment-trend`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getEnrollmentTrend: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/enrollment-trend`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Revenue Trend
-  getRevenueTrend: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/revenue-trend`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getRevenueTrend: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/revenue-trend`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Class Distribution
-  getClassDistribution: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/class-distribution`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getClassDistribution: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/class-distribution`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Gender Ratio
-  getGenderRatio: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/gender-ratio`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getGenderRatio: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/gender-ratio`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Recent Users
-  getRecentUsers: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/recent-users`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getRecentUsers: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/recent-users`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get System Health
-  getHealth: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/admin/health`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getHealth: async (_token?: string) => {
+    const res = await axiosInstance.get(`${BASE}/health`);
+    return res.data?.data ?? res.data;
   },
 };
 

@@ -32,73 +32,69 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     };
   }, [menuOpen]);
 
+  const initials = user?.fullName
+    ? user.fullName.split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div className="flex items-center justify-between px-4 md:px-6 h-16">
+    <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
         {/* Left: Logo + Mobile Menu Toggle */}
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuClick}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 transition-colors hover:bg-surfaceinset md:hidden"
             aria-label="Toggle sidebar"
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Menu className="h-5 w-5 text-slatesoft" />
           </button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#81D5FF] rounded-lg flex items-center justify-center">
-              <span className="text-[#1E3A8A] font-bold text-sm">SE</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-sky">
+              <span className="font-display text-sm font-extrabold text-brand">SE</span>
             </div>
-            <span className="text-lg font-bold text-[#1E3A8A] hidden sm:block">
+            <span className="hidden font-display text-lg font-extrabold tracking-tight text-brand sm:block">
               ShikkhaERP
             </span>
           </Link>
         </div>
 
         {/* Right: User Info + Account menu + Logout */}
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-gray-700">{user?.fullName}</p>
-            <p className="text-xs text-gray-500 capitalize">
-              {user?.role?.replace('_', ' ')}
-            </p>
+        <div className="flex items-center gap-3">
+          <div className="hidden text-right sm:block">
+            <p className="text-sm font-semibold text-ink">{user?.fullName}</p>
+            <p className="text-xs capitalize text-slatesoft">{user?.role?.replace('_', ' ')}</p>
           </div>
 
-          {/* Account dropdown. This is the home for self-service account
-              actions — Change password now, and where the Permanent delete
-              item will live once that endpoint exists. */}
+          {/* Account dropdown — home for self-service account actions. */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-1 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1 rounded-full p-1 transition-colors hover:bg-surfaceinset"
               aria-label="Account menu"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <div className="w-8 h-8 rounded-full bg-[#81D5FF] flex items-center justify-center text-[#06263D] font-bold text-xs">
-                {user?.fullName
-                  ? user.fullName.split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase()
-                  : '?'}
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-sky font-display text-xs font-bold text-brand">
+                {initials}
               </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <ChevronDown className="h-4 w-4 text-slatesoft" />
             </button>
 
             {menuOpen && (
               <div
                 role="menu"
-                className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-40"
+                className="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-card-hover"
               >
-                <div className="px-3 py-2 border-b border-gray-100 sm:hidden">
-                  <p className="text-sm font-medium text-gray-700 truncate">{user?.fullName}</p>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {user?.role?.replace('_', ' ')}
-                  </p>
+                <div className="border-b border-line px-3 py-2 sm:hidden">
+                  <p className="truncate text-sm font-semibold text-ink">{user?.fullName}</p>
+                  <p className="text-xs capitalize text-slatesoft">{user?.role?.replace('_', ' ')}</p>
                 </div>
                 <button
                   role="menuitem"
                   onClick={() => { setMenuOpen(false); setShowChangePassword(true); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink transition-colors hover:bg-surfaceinset"
                 >
-                  <KeyRound className="w-4 h-4 text-gray-500" />
+                  <KeyRound className="h-4 w-4 text-slatesoft" />
                   Change password
                 </button>
               </div>

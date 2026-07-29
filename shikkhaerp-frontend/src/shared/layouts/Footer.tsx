@@ -2,9 +2,9 @@ import React from 'react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-white border-t border-gray-200 py-4 px-6 text-center text-sm text-gray-500">
+    <footer className="border-t border-line bg-white px-6 py-4 text-center text-sm text-slatesoft">
       <p>
-        &copy; {new Date().getFullYear()} ShikkhaERP – Smart School. Smarter Management.
+        &copy; {new Date().getFullYear()} ShikkhaERP — Smart School. Smarter Management.
       </p>
     </footer>
   );

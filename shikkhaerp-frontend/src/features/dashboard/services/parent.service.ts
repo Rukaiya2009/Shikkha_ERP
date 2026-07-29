@@ -1,97 +1,37 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+import { axiosInstance } from '../../../core/api/axiosInstance';
+import { API_ENDPOINTS } from '../../../core/api/apiEndpoints';
 
+const BASE = API_ENDPOINTS.DASHBOARD.PARENT; // /v1/dashboard/parent
+
+// NOTE: the backend does not yet expose a parent dashboard controller. These
+// calls are wired to the correct paths so they light up automatically once the
+// endpoints ship; until then they resolve to safe empties and the dashboard
+// shows a clean "no children linked yet" state instead of crashing.
 const parentService = {
-  // Get Parent Dashboard Summary
-  getSummary: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/summary`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getSummary: async (_token?: string) => {
+    try {
+      const res = await axiosInstance.get(`${BASE}/summary`);
+      return res.data?.data ?? res.data ?? null;
+    } catch {
+      return null;
+    }
   },
-
-  // Get My Children
-  getMyChildren: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/children`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getMyChildren: async (_token?: string) => {
+    try {
+      const res = await axiosInstance.get(`${BASE}/children`);
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
-
-  // Get Child's Academic Performance
-  getChildPerformance: async (token: string, childId: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/children/${childId}/performance`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getChildPerformance: async (_token: string | undefined, childId: string) => {
+    const res = await axiosInstance.get(`${BASE}/children/${childId}/performance`);
+    return res.data?.data ?? res.data;
   },
-
-  // Get Child's Attendance
-  getChildAttendance: async (token: string, childId: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/children/${childId}/attendance`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
-  },
-
-  // Get Child's Fee Status
-  getChildFeeStatus: async (token: string, childId: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/children/${childId}/fees`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
-  },
-
-  // Get Child's Timetable
-  getChildTimetable: async (token: string, childId: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/children/${childId}/timetable`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
-  },
-
-  // Pay Fees
-  payFees: async (token: string, data: { childId: string, feeId: string, amount: number, paymentMethod: string }) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/pay-fees`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  // Get Payment History
-  getPaymentHistory: async (token: string, childId?: string) => {
-    const url = childId ? `${API_BASE_URL}/dashboard/parent/payment-history?childId=${childId}` : `${API_BASE_URL}/dashboard/parent/payment-history`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
-  },
-
-  // Send Message to Teacher
-  sendMessage: async (token: string, data: { childId: string, teacherId: string, subject: string, message: string }) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/send-message`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  // Get Notifications
-  getNotifications: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/parent/notifications`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    return response.json();
+  getChildAttendance: async (_token: string | undefined, childId: string) => {
+    const res = await axiosInstance.get(`${BASE}/children/${childId}/attendance`);
+    return res.data?.data ?? res.data;
   },
 };
 
