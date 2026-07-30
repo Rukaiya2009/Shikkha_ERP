@@ -3,6 +3,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import userService, { AppUser } from '../../dashboard/services/user.service';
 import { AddUserModal } from './AddUserModal';
 import { EditUserModal } from './EditUserModal';
+import { Search, X, Plus, ChevronLeft, ChevronRight, Users2 } from 'lucide-react';
 
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -22,11 +23,10 @@ const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }
 };
 
 const statusStyle = (status: string) =>
-  STATUS_STYLES[status] ?? { label: status, color: '#4A5A6B', bg: '#EEF3F8' };
+  STATUS_STYLES[status] ?? { label: status, color: '#51607A', bg: '#EEF3F8' };
 
 const PAGE_SIZE = 10;
 
-// Order shown in the status filter dropdown. Empty value = no filter.
 const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: '',                     label: 'All statuses' },
   { value: 'ACTIVE',               label: 'Active' },
@@ -51,8 +51,6 @@ export const UserList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Search + filter. `keyword` is the raw input; `debouncedKeyword` is what we
-  // actually query with, so we don't fire a request on every keystroke.
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -67,8 +65,6 @@ export const UserList: React.FC = () => {
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
-  // Debounce the search box (350ms). Trim here so trailing spaces don't count
-  // as a keyword and flip us into search mode.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedKeyword(keyword.trim()), 350);
     return () => clearTimeout(t);
@@ -88,10 +84,6 @@ export const UserList: React.FC = () => {
         setTotalElements(result.totalElements);
         setPage(result.pageNumber);
       } else if (debouncedKeyword) {
-        // SEARCH MODE. The /search endpoint returns a flat, non-paginated list,
-        // so pagination is hidden here. The status filter is applied client-side
-        // on the results so search + status still compose for the user, even
-        // though the backend search itself ignores status.
         const results = await userService.search(debouncedKeyword);
         const filtered = statusFilter
           ? results.filter((u) => u.status === statusFilter)
@@ -120,8 +112,6 @@ export const UserList: React.FC = () => {
     }
   }, [viewMode, debouncedKeyword, statusFilter]);
 
-  // Any change to view / search / status rebuilds loadUsers and refetches from
-  // page 0. Pagination buttons call loadUsers(page ± 1) directly.
   useEffect(() => {
     loadUsers(0);
   }, [loadUsers]);
@@ -165,7 +155,6 @@ export const UserList: React.FC = () => {
     setError(null);
     setNotice(null);
     try {
-      // Locked user's own email — see note in user.service.ts unlock().
       await userService.unlock(target.id, target.email);
       setNotice(`${target.name}'s account has been unlocked.`);
       loadUsers(page);
@@ -218,18 +207,14 @@ export const UserList: React.FC = () => {
   };
 
   const initials = (n: string) => n.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-
   const pendingCount = users.filter((u) => u.status === 'PENDING_VERIFICATION').length;
 
   const tabBtn = (mode: ViewMode, label: string) => (
     <button
       onClick={() => switchView(mode)}
-      style={{
-        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '7px 14px',
-        border: '1px solid #DCE7F0', cursor: 'pointer',
-        background: viewMode === mode ? '#142334' : 'transparent',
-        color: viewMode === mode ? '#fff' : '#4A5A6B',
-      }}
+      className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+        viewMode === mode ? 'bg-brand text-white shadow-sm' : 'text-slatesoft hover:bg-surfaceinset'
+      }`}
     >
       {label}
     </button>
@@ -238,274 +223,225 @@ export const UserList: React.FC = () => {
   const smallBtn = (
     label: string,
     onClick: () => void,
-    opts: { color: string; border: string; disabled?: boolean }
+    opts: { className: string; disabled?: boolean }
   ) => (
     <button
       onClick={onClick}
       disabled={opts.disabled}
-      style={{
-        fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 11px',
-        border: `1px solid ${opts.border}`, background: 'transparent', color: opts.color,
-        cursor: opts.disabled ? 'not-allowed' : 'pointer', opacity: opts.disabled ? 0.6 : 1,
-      }}
+      className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${opts.className}`}
     >
       {label}
     </button>
   );
 
   return (
-    <div style={{
-      background: '#FFFFFF', border: '1px solid #DCE7F0', borderRadius: 16,
-      boxShadow: '0 1px 3px rgba(20,35,52,0.05)', fontFamily: 'Inter, sans-serif', overflow: 'hidden',
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px 22px', borderBottom: '1px solid #DCE7F0', flexWrap: 'wrap', gap: 12,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
-            {isDeletedView ? 'Deleted Users' : 'Users'}
-            <span style={{ color: '#4A5A6B', fontWeight: 500, fontSize: 13, marginLeft: 8 }}>
-              ({totalElements})
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {tabBtn('active', 'Active')}
-            {tabBtn('deleted', 'Deleted')}
-          </div>
-          {!isDeletedView && pendingCount > 0 && (
-            <span style={{
-              display: 'inline-block', padding: '4px 10px', borderRadius: 100,
-              fontSize: 12, fontWeight: 700, color: '#1D4ED8', background: '#E3EDFB',
-            }}>
-              {pendingCount} pending invite{pendingCount === 1 ? '' : 's'}
-            </span>
-          )}
-        </div>
-        {!isDeletedView && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            style={{
-              fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-              border: 'none', background: '#142334', color: '#fff', cursor: 'pointer',
-            }}
-          >
-            + Add user
-          </button>
-        )}
-      </div>
-
-      {!isDeletedView && (
-        <div style={{
-          display: 'flex', gap: 10, alignItems: 'center',
-          padding: '14px 22px', borderBottom: '1px solid #DCE7F0', flexWrap: 'wrap',
-        }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="#4A5A6B" strokeWidth="2" strokeLinecap="round"
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-            >
-              <circle cx="11" cy="11" r="7" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Search name, email, or school…"
-              maxLength={120}
-              style={{
-                width: '100%', boxSizing: 'border-box', padding: '8px 30px',
-                fontSize: 13, border: '1px solid #DCE7F0', borderRadius: 9,
-                color: '#142334', fontFamily: 'Inter, sans-serif', outline: 'none',
-              }}
-            />
-            {keyword && (
-              <button
-                onClick={() => setKeyword('')}
-                aria-label="Clear search"
-                style={{
-                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                  border: 'none', background: 'transparent', cursor: 'pointer',
-                  color: '#4A5A6B', fontSize: 16, lineHeight: 1, padding: 0,
-                }}
-              >
-                ×
-              </button>
+    <div className="mx-auto max-w-6xl">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                <Users2 className="h-4 w-4" />
+              </span>
+              <h1 className="font-display text-lg font-extrabold text-ink">
+                {isDeletedView ? 'Deleted users' : 'Users'}
+                <span className="ml-2 text-sm font-medium text-slatesoft">({totalElements})</span>
+              </h1>
+            </div>
+            <div className="flex gap-1.5 rounded-xl bg-surfaceinset p-1">
+              {tabBtn('active', 'Active')}
+              {tabBtn('deleted', 'Deleted')}
+            </div>
+            {!isDeletedView && pendingCount > 0 && (
+              <span className="rounded-full bg-ocean/10 px-2.5 py-1 text-xs font-bold text-ocean">
+                {pendingCount} pending invite{pendingCount === 1 ? '' : 's'}
+              </span>
             )}
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '8px 11px', fontSize: 13, border: '1px solid #DCE7F0', borderRadius: 9,
-              color: '#142334', background: '#fff', fontFamily: 'Inter, sans-serif', cursor: 'pointer',
-            }}
-          >
-            {STATUS_FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          {!isDeletedView && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
+            >
+              <Plus className="h-4 w-4" /> Add user
+            </button>
+          )}
         </div>
-      )}
 
-      {error && (
-        <div style={{ background: '#FBEAE9', color: '#B3261E', fontSize: 13, padding: '10px 22px' }}>
-          {error}
-        </div>
-      )}
-      {notice && (
-        <div style={{ background: '#E4F5EC', color: '#1B8A5A', fontSize: 13, padding: '10px 22px' }}>
-          {notice}
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#4A5A6B', fontSize: 13.5 }}>
-          Loading users…
-        </div>
-      ) : users.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#4A5A6B', fontSize: 13.5 }}>
-          {isDeletedView
-            ? 'No deleted users.'
-            : isSearchMode
-              ? `No users match "${debouncedKeyword}".`
-              : 'No users found.'}
-        </div>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {['Name', 'Role', 'School', 'Status', ''].map((h, i) => (
-                <th key={i} style={{
-                  textAlign: i === 4 ? 'right' : 'left', fontSize: 11.5, textTransform: 'uppercase',
-                  letterSpacing: '0.05em', color: '#4A5A6B', fontWeight: 700,
-                  padding: '12px 22px', borderBottom: '1px solid #DCE7F0', background: '#F8FBFE',
-                }}>
-                  {h}
-                </th>
+        {/* Search + filter */}
+        {!isDeletedView && (
+          <div className="flex flex-wrap items-center gap-2.5 border-b border-line px-5 py-3.5">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slatesoft" />
+              <input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Search name, email, or school…"
+                maxLength={120}
+                className="w-full rounded-xl border border-linestrong bg-surfacefield px-9 py-2.5 text-sm text-ink outline-none transition-shadow focus:border-brand focus:ring-4 focus:ring-ocean/15"
+              />
+              {keyword && (
+                <button
+                  onClick={() => setKeyword('')}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slatesoft hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="cursor-pointer rounded-xl border border-linestrong bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-brand focus:ring-4 focus:ring-ocean/15"
+            >
+              {STATUS_FILTER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => {
-              const s = statusStyle(u.status);
-              const isPending = u.status === 'PENDING_VERIFICATION';
-              return (
-                <tr key={u.id} style={{ opacity: isDeletedView ? 0.72 : 1 }}>
-                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontFamily: 'Manrope, sans-serif', fontWeight: 700,
-                        fontSize: 13, color: '#06263D', background: '#81D5FF', flexShrink: 0,
-                      }}>
-                        {initials(u.name)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div>
-                        <div style={{ color: '#4A5A6B', fontSize: 12.5 }}>{u.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
-                    {ROLE_LABELS[u.role] ?? u.role}
-                  </td>
-                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', fontSize: 13.5 }}>
-                    {u.schoolId ?? <span style={{ color: '#4A5A6B' }}>— platform —</span>}
-                  </td>
-                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0' }}>
-                    {isDeletedView ? (
-                      <span style={{
-                        display: 'inline-block', padding: '4px 10px', borderRadius: 100,
-                        fontSize: 12, fontWeight: 700, color: '#8A5A00', background: '#FBF0DA',
-                      }}>
-                        Deleted
-                      </span>
-                    ) : (
-                      <span style={{
-                        display: 'inline-block', padding: '4px 10px', borderRadius: 100,
-                        fontSize: 12, fontWeight: 700, color: s.color, background: s.bg,
-                      }}>
-                        {s.label}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: '14px 22px', borderBottom: '1px solid #DCE7F0', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      {isDeletedView ? (
-                        smallBtn(
-                          restoringId === u.id ? 'Restoring…' : 'Restore',
-                          () => handleRestore(u),
-                          { color: '#1B8A5A', border: '#CDE8D8', disabled: restoringId === u.id }
-                        )
-                      ) : (
-                        <>
-                          {u.status === 'LOCKED' && smallBtn(
-                            unlockingId === u.id ? 'Unlocking…' : 'Unlock',
-                            () => handleUnlock(u),
-                            { color: '#6B21A8', border: '#D8C4F0', disabled: unlockingId === u.id }
-                          )}
-                          {isPending && smallBtn(
-                            resendingId === u.id ? 'Sending…' : 'Resend invite',
-                            () => handleResendInvite(u),
-                            { color: '#1D4ED8', border: '#C7DBF7', disabled: resendingId === u.id }
-                          )}
-                          {smallBtn('Edit', () => setEditingUser(u), { color: '#142334', border: '#DCE7F0' })}
-                          {smallBtn(
-                            u.status === 'ACTIVE' ? 'Deactivate' : 'Activate',
-                            u.status === 'ACTIVE'
-                              ? () => setDeactivatingUser(u)
-                              : () => handleActivate(u),
-                            { color: '#4A5A6B', border: '#DCE7F0' }
-                          )}
-                          {smallBtn('Delete', () => setDeletingUser(u), { color: '#B3261E', border: '#FBEAE9' })}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      {!loading && !isSearchMode && totalPages > 1 && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '14px 22px', borderTop: '1px solid #DCE7F0', fontSize: 13,
-        }}>
-          <span style={{ color: '#4A5A6B' }}>
-            Page {page + 1} of {totalPages}
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => loadUsers(page - 1)}
-              disabled={page === 0}
-              style={{
-                fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
-                border: '1px solid #DCE7F0', background: page === 0 ? '#EEF5FC' : 'transparent',
-                color: page === 0 ? '#4A5A6B' : '#142334', cursor: page === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => loadUsers(page + 1)}
-              disabled={page >= totalPages - 1}
-              style={{
-                fontWeight: 600, fontSize: 12.5, borderRadius: 8, padding: '6px 12px',
-                border: '1px solid #DCE7F0', background: page >= totalPages - 1 ? '#EEF5FC' : 'transparent',
-                color: page >= totalPages - 1 ? '#4A5A6B' : '#142334',
-                cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              Next
-            </button>
+            </select>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Banners */}
+        {error && (
+          <div className="bg-alert/10 px-5 py-2.5 text-sm font-medium text-alert">{error}</div>
+        )}
+        {notice && (
+          <div className="bg-success/10 px-5 py-2.5 text-sm font-medium text-success">{notice}</div>
+        )}
+
+        {/* Table / states */}
+        {loading ? (
+          <div className="space-y-2 p-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="relative h-14 overflow-hidden rounded-xl bg-line/60">
+                <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+              </div>
+            ))}
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-surfaceinset text-slatesoft">
+              <Users2 className="h-6 w-6" />
+            </div>
+            <p className="text-sm text-slatesoft">
+              {isDeletedView
+                ? 'No deleted users.'
+                : isSearchMode
+                  ? `No users match “${debouncedKeyword}”.`
+                  : 'No users found.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-surfaceinset">
+                  {['Name', 'Role', 'School', 'Status', ''].map((h, i) => (
+                    <th
+                      key={i}
+                      className={`border-b border-line px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slatesoft ${i === 4 ? 'text-right' : 'text-left'}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => {
+                  const s = statusStyle(u.status);
+                  const isPending = u.status === 'PENDING_VERIFICATION';
+                  return (
+                    <tr key={u.id} className={`border-b border-line transition-colors hover:bg-surfaceinset/60 ${isDeletedView ? 'opacity-70' : ''}`}>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-softblue font-display text-xs font-bold text-brand">
+                            {initials(u.name)}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-ink">{u.name}</div>
+                            <div className="text-xs text-slatesoft">{u.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-ink">{ROLE_LABELS[u.role] ?? u.role}</td>
+                      <td className="px-5 py-3.5 text-sm text-ink">
+                        {u.schoolId ?? <span className="text-slatesoft">— platform —</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {isDeletedView ? (
+                          <span className="inline-block rounded-full px-2.5 py-1 text-xs font-bold" style={{ color: '#8A5A00', background: '#FBF0DA' }}>
+                            Deleted
+                          </span>
+                        ) : (
+                          <span className="inline-block rounded-full px-2.5 py-1 text-xs font-bold" style={{ color: s.color, background: s.bg }}>
+                            {s.label}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {isDeletedView ? (
+                            smallBtn(
+                              restoringId === u.id ? 'Restoring…' : 'Restore',
+                              () => handleRestore(u),
+                              { className: 'border-success/30 text-success hover:bg-success/5', disabled: restoringId === u.id }
+                            )
+                          ) : (
+                            <>
+                              {u.status === 'LOCKED' && smallBtn(
+                                unlockingId === u.id ? 'Unlocking…' : 'Unlock',
+                                () => handleUnlock(u),
+                                { className: 'border-[#D8C4F0] text-[#6B21A8] hover:bg-[#F3E8FD]', disabled: unlockingId === u.id }
+                              )}
+                              {isPending && smallBtn(
+                                resendingId === u.id ? 'Sending…' : 'Resend invite',
+                                () => handleResendInvite(u),
+                                { className: 'border-ocean/30 text-ocean hover:bg-ocean/5', disabled: resendingId === u.id }
+                              )}
+                              {smallBtn('Edit', () => setEditingUser(u), { className: 'border-linestrong text-ink hover:bg-surfaceinset' })}
+                              {smallBtn(
+                                u.status === 'ACTIVE' ? 'Deactivate' : 'Activate',
+                                u.status === 'ACTIVE' ? () => setDeactivatingUser(u) : () => handleActivate(u),
+                                { className: 'border-linestrong text-slatesoft hover:bg-surfaceinset' }
+                              )}
+                              {smallBtn('Delete', () => setDeletingUser(u), { className: 'border-alert/20 text-alert hover:bg-alert/5' })}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && !isSearchMode && totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-line px-5 py-3.5 text-sm">
+            <span className="text-slatesoft">Page {page + 1} of {totalPages}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => loadUsers(page - 1)}
+                disabled={page === 0}
+                className="inline-flex items-center gap-1 rounded-lg border border-linestrong px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-surfaceinset disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </button>
+              <button
+                onClick={() => loadUsers(page + 1)}
+                disabled={page >= totalPages - 1}
+                className="inline-flex items-center gap-1 rounded-lg border border-linestrong px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-surfaceinset disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <AddUserModal
         isOpen={showAddModal}
@@ -519,48 +455,30 @@ export const UserList: React.FC = () => {
         onUpdated={() => loadUsers(page)}
       />
 
+      {/* Delete confirm */}
       {deletingUser && (
         <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(10,20,32,0.45)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-5 backdrop-blur-sm"
           onClick={() => !deleteSubmitting && setDeletingUser(null)}
         >
-          <div
-            style={{
-              background: '#FFFFFF', borderRadius: 18, width: '100%', maxWidth: 400,
-              boxShadow: '0 20px 60px rgba(10,20,32,0.25)', fontFamily: 'Inter, sans-serif', padding: 24,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
-              Delete {deletingUser.name}?
-            </div>
-            <div style={{ fontSize: 13, color: '#4A5A6B', marginTop: 10, lineHeight: 1.55 }}>
-              This removes them from the active user list. It's a soft delete — their
-              records (grades, attendance, history) are kept, and this can be reversed
-              later from the Deleted view.
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-extrabold text-ink">Delete {deletingUser.name}?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slatesoft">
+              This removes them from the active user list. It's a soft delete — their records
+              (grades, attendance, history) are kept, and this can be reversed later from the Deleted view.
+            </p>
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 onClick={() => setDeletingUser(null)}
                 disabled={deleteSubmitting}
-                style={{
-                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-                  border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
-                }}
+                className="rounded-xl border border-linestrong px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surfaceinset"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirmed}
                 disabled={deleteSubmitting}
-                style={{
-                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-                  border: 'none', background: '#B3261E', color: '#fff',
-                  cursor: deleteSubmitting ? 'not-allowed' : 'pointer', opacity: deleteSubmitting ? 0.7 : 1,
-                }}
+                className="rounded-xl bg-alert px-4 py-2 text-sm font-semibold text-white transition-colors hover:brightness-95 disabled:opacity-70"
               >
                 {deleteSubmitting ? 'Deleting…' : 'Delete user'}
               </button>
@@ -569,47 +487,30 @@ export const UserList: React.FC = () => {
         </div>
       )}
 
+      {/* Deactivate confirm */}
       {deactivatingUser && (
         <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(10,20,32,0.45)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-5 backdrop-blur-sm"
           onClick={() => !deactivateSubmitting && setDeactivatingUser(null)}
         >
-          <div
-            style={{
-              background: '#FFFFFF', borderRadius: 18, width: '100%', maxWidth: 400,
-              boxShadow: '0 20px 60px rgba(10,20,32,0.25)', fontFamily: 'Inter, sans-serif', padding: 24,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 17, color: '#142334' }}>
-              Deactivate {deactivatingUser.name}?
-            </div>
-            <div style={{ fontSize: 13, color: '#4A5A6B', marginTop: 10, lineHeight: 1.55 }}>
-              They'll stay in the user list but won't be able to sign in until an admin
-              reactivates them. This is reversible.
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-extrabold text-ink">Deactivate {deactivatingUser.name}?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slatesoft">
+              They'll stay in the user list but won't be able to sign in until an admin reactivates them. This is reversible.
+            </p>
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 onClick={() => setDeactivatingUser(null)}
                 disabled={deactivateSubmitting}
-                style={{
-                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-                  border: '1px solid #DCE7F0', background: 'transparent', color: '#142334', cursor: 'pointer',
-                }}
+                className="rounded-xl border border-linestrong px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surfaceinset"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeactivateConfirmed}
                 disabled={deactivateSubmitting}
-                style={{
-                  fontWeight: 600, fontSize: 13.5, borderRadius: 10, padding: '9px 16px',
-                  border: 'none', background: '#8A5A00', color: '#fff',
-                  cursor: deactivateSubmitting ? 'not-allowed' : 'pointer', opacity: deactivateSubmitting ? 0.7 : 1,
-                }}
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors hover:brightness-95 disabled:opacity-70"
+                style={{ background: '#8A5A00' }}
               >
                 {deactivateSubmitting ? 'Deactivating…' : 'Deactivate'}
               </button>

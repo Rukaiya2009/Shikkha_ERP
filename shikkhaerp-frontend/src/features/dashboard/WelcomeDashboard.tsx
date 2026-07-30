@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { axiosInstance } from '../../core/api/axiosInstance';
 import { API_ENDPOINTS } from '../../core/api/apiEndpoints';
@@ -21,19 +20,7 @@ const WelcomeDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Super admins are platform-level and have NO school, so /user/trial returns
-  // 400 "School not found" for them. Trial is a per-school concept — a super
-  // admin should never see this screen. Compute once and use it to skip the
-  // call entirely.
-  const isSuperAdmin = user?.role === 'super_admin';
-
   useEffect(() => {
-    // Don't fetch trial info for super admins — the call is guaranteed to 400.
-    if (isSuperAdmin) {
-      setLoading(false);
-      return;
-    }
-
     const fetchTrialInfo = async () => {
       try {
         const response = await axiosInstance.get(API_ENDPOINTS.TRIAL.INFO);
@@ -46,14 +33,7 @@ const WelcomeDashboard: React.FC = () => {
       }
     };
     fetchTrialInfo();
-  }, [isSuperAdmin]);
-
-  // A super admin should never be on /welcome (trial is per-school). Redirect
-  // them straight to their dashboard — no trial call, no error, no click.
-  // This runs on any path onto /welcome, not just login.
-  if (isSuperAdmin) {
-    return <Navigate to="/super-admin/dashboard" replace />;
-  }
+  }, []);
 
   if (loading) {
     return (
