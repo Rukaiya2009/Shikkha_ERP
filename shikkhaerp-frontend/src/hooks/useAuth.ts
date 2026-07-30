@@ -19,12 +19,12 @@ export const useAuth = () => {
   const getDashboardUrl = (): string => {
     const role = getUserRole();
     const dashboards: Record<string, string> = {
-      super_admin: '/super-admin/dashboard',
+      super_admin: '/platform/dashboard',
       school_admin: '/school-admin/dashboard',
       teacher: '/teacher/dashboard',
       parent: '/parent/dashboard',
       student: '/student/dashboard',
-      developer: '/developer/dashboard',  // NEW
+      developer: '/platform/dashboard',
     };
     return dashboards[role] || '/student/dashboard';
   };

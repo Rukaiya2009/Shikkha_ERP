@@ -3,59 +3,86 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginContainer from './features/auth/containers/Login.container';
 import RegisterContainer from './features/auth/containers/Register.container';
 import SetupPassword from './features/auth/containers/SetupPassword.container';
-import { DashboardLayout } from './shared/layouts/DashboardLayout';
-import StudentDashboard from './features/dashboard/StudentDashboard';
-import SuperAdminDashboard from './features/dashboard/SuperAdminDashboard';
+import { RoleLayout } from './layouts/RoleLayout';
+import { PlannedPage } from './pages/PlannedPage';
+import PlatformDashboard from './pages/PlatformDashboard';
 import AdminDashboard from './features/dashboard/AdminDashboard';
 import TeacherDashboard from './features/dashboard/TeacherDashboard';
+import StudentDashboard from './features/dashboard/StudentDashboard';
 import ParentDashboard from './features/dashboard/ParentDashboard';
 import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
 import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
-import DeveloperDashboard from './features/dashboard/DeveloperDashboard';
-import DeveloperApprovalsPage from './features/dashboard/DeveloperApprovalsPage';
-import DeveloperSchoolsPage from './features/dashboard/DeveloperSchoolsPage';
-import DeveloperEmailLogsPage from './features/dashboard/DeveloperEmailLogsPage';
-import DeveloperSettingsPage from './features/dashboard/DeveloperSettingsPage';
-import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
-import { ROUTE_PERMISSIONS } from './core/constants/routePermissions';
 import { UserList } from './features/user/components/UserList';
+import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
+import { navForRole, DELIVERED_THROUGH, AppRole } from './layouts/navConfig';
 
-const getUserRole = () => {
-  const userStr = localStorage.getItem('user');
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      return user.role;
-    } catch (e) {
-      return null;
-    }
+const getUserRole = (): string | null => {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw).role : null;
+  } catch {
+    return null;
   }
-  return null;
 };
 
-const isAuthenticated = () => {
-  const token = localStorage.getItem('accessToken');
-  const user = localStorage.getItem('user');
-  return !!(token && user);
-};
+const isAuthenticated = () => !!(localStorage.getItem('accessToken') && localStorage.getItem('user'));
 
-const getDashboardPath = (role: string | null) => {
+/** Where each role lands after login. Platform roles share one console. */
+export const homeFor = (role: string | null) => {
   switch (role) {
-    case 'super_admin': return '/super-admin/dashboard';
-    case 'school_admin': return '/school-admin/dashboard';
-    case 'teacher': return '/teacher/dashboard';
-    case 'parent': return '/parent/dashboard';
-    case 'student': return '/student/dashboard';
-    case 'developer': return '/developer/dashboard';
-    default: return '/login';
+    case 'super_admin':
+    case 'developer':
+      return '/platform/dashboard';
+    case 'school_admin':
+      return '/school-admin/dashboard';
+    case 'teacher':
+      return '/teacher/dashboard';
+    case 'parent':
+      return '/parent/dashboard';
+    case 'student':
+      return '/student/dashboard';
+    default:
+      return '/login';
   }
 };
+
+/**
+ * Screens that are actually implemented. Every other leaf in the nav tree
+ * renders PlannedPage, so the rail is complete from day one and no link is dead.
+ */
+const IMPLEMENTED: Record<string, JSX.Element> = {
+  '/platform/dashboard': <PlatformDashboard />,
+  '/platform/users': <UserList />,
+  '/school-admin/dashboard': <AdminDashboard />,
+  '/school-admin/users': <UserList />,
+  '/teacher/dashboard': <TeacherDashboard />,
+  '/student/dashboard': <StudentDashboard />,
+  '/parent/dashboard': <ParentDashboard />,
+};
+
+/** One <Route> per nav leaf, guarded to the role that owns it. */
+const routesForRole = (role: AppRole) =>
+  navForRole(role)
+    .flatMap((g) => g.items)
+    .map((leaf) => {
+      const ready = IMPLEMENTED[leaf.path] && (leaf.phase ?? 99) <= DELIVERED_THROUGH;
+      return (
+        <Route
+          key={leaf.path}
+          path={leaf.path}
+          element={
+            <RoleBasedRoute allowedRoles={[role]}>
+              {ready ? IMPLEMENTED[leaf.path] : <PlannedPage />}
+            </RoleBasedRoute>
+          }
+        />
+      );
+    });
 
 export const AppRoutes = () => {
-  const userRole = getUserRole();
-  const authenticated = isAuthenticated();
+  const role = getUserRole();
 
-  if (!authenticated) {
+  if (!isAuthenticated()) {
     return (
       <Routes>
         <Route path="/login" element={<LoginContainer />} />
@@ -72,142 +99,25 @@ export const AppRoutes = () => {
       <Route path="/register" element={<RegisterContainer />} />
       <Route path="/setup-password" element={<SetupPassword />} />
 
-      <Route
-        path="/app/approve/:uuid"
-        element={
-          <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/app/approve']}>
-            <SchoolCreationPage />
-          </RoleBasedRoute>
-        }
-      />
-
-      <Route
-        path="/welcome"
-        element={
-          <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/welcome']}>
-            <WelcomeDashboard />
-          </RoleBasedRoute>
-        }
-      />
-
-      <Route element={<DashboardLayout />}>
-        <Route
-          path="/developer/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
-              <DeveloperDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/developer/approvals"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
-              <DeveloperApprovalsPage />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/developer/schools"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
-              <DeveloperSchoolsPage />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/developer/email-logs"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
-              <DeveloperEmailLogsPage />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/developer/settings"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/developer']}>
-              <DeveloperSettingsPage />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/student/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/student']}>
-              <StudentDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/super-admin/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/super-admin']}>
-              <SuperAdminDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/super-admin/users"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/super-admin']}>
-              <UserList />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/school-admin/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/school-admin']}>
-              <AdminDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/school-admin/users"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/school-admin']}>
-              <UserList />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/teacher/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/teacher']}>
-              <TeacherDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/parent/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/parent']}>
-              <ParentDashboard />
-            </RoleBasedRoute>
-          }
-        />
-
-        <Route
-          path="/superadmin/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/superadmin']}>
-              <SuperAdminDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={ROUTE_PERMISSIONS['/admin']}>
-              <AdminDashboard />
-            </RoleBasedRoute>
-          }
-        />
+      <Route element={<RoleLayout />}>
+        {role && routesForRole(role as AppRole)}
+        <Route path="/welcome" element={<WelcomeDashboard />} />
+        <Route path="/app/approve/:uuid" element={<SchoolCreationPage />} />
       </Route>
 
-      <Route path="/" element={<Navigate to={getDashboardPath(userRole)} replace />} />
-      <Route path="*" element={<Navigate to={getDashboardPath(userRole)} replace />} />
+      {/* Legacy paths kept alive so old links and sent emails don't 404. */}
+      <Route path="/super-admin/dashboard" element={<Navigate to="/platform/dashboard" replace />} />
+      <Route path="/superadmin/dashboard" element={<Navigate to="/platform/dashboard" replace />} />
+      <Route path="/super-admin/users" element={<Navigate to="/platform/users" replace />} />
+      <Route path="/developer/dashboard" element={<Navigate to="/platform/dashboard" replace />} />
+      <Route path="/developer/approvals" element={<Navigate to="/platform/approvals" replace />} />
+      <Route path="/developer/schools" element={<Navigate to="/platform/schools" replace />} />
+      <Route path="/developer/email-logs" element={<Navigate to="/platform/email-log" replace />} />
+      <Route path="/developer/settings" element={<Navigate to="/platform/settings/general" replace />} />
+      <Route path="/admin/dashboard" element={<Navigate to="/school-admin/dashboard" replace />} />
+
+      <Route path="/" element={<Navigate to={homeFor(role)} replace />} />
+      <Route path="*" element={<Navigate to={homeFor(role)} replace />} />
     </Routes>
   );
 };

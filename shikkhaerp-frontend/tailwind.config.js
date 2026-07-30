@@ -23,10 +23,30 @@ export default {
         linestrong: '#D6E0EC',
         surfaceinset: '#F5F8FC',
         surfacefield: '#FAFCFE',
+
+        // ── Sidebar rail (all roles) ────────────────────────────────
+        // Sampled from the marketing hero + the reference design Rukaiya
+        // picked: deep navy rail, rounded active pills, LIGHT content canvas.
+        rail: {
+          DEFAULT: '#0B1B2E',   // rail surface
+          deep: '#08192C',      // reference navy
+          soft: '#13304F',      // hover / raised rows inside the rail
+          line: '#1E3A5C',      // dividers inside the rail
+          text: '#C9D9EC',      // idle nav label
+          dim: '#7D96B5',       // section captions
+        },
+        signal: {
+          DEFAULT: '#12AEA9',   // marketing CTA teal — active nav + primary action
+          deep: '#0795AE',
+        },
+        beam: '#3E92CC',
+        canvas: '#F7FBFE',      // page background beside the rail
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['"Space Grotesk"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        // Instrument face: tenant codes, subdomains, job names, uptime, keys.
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(10,17,40,0.04), 0 4px 16px rgba(10,17,40,0.05)',
@@ -37,6 +57,8 @@ export default {
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #001F54 0%, #034078 55%, #1282A2 100%)',
         'sky-fade': 'linear-gradient(180deg, #F5F8FC 0%, #FFFFFF 100%)',
+        'signal-gradient': 'linear-gradient(135deg, #0795AE 0%, #12AEA9 100%)',
+        'rail-fade': 'linear-gradient(180deg, #0D2137 0%, #08192C 100%)',
       },
       keyframes: {
         shimmer: { '100%': { transform: 'translateX(100%)' } },

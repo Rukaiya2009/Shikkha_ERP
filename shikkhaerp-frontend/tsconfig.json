@@ -18,12 +18,13 @@
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    // Add these two lines to fix the import.meta.env error and silence baseUrl deprecation
     "types": ["vite/client"],
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
+
+    // No "baseUrl". Since TS 4.1 `paths` resolves relative to this file, so the
+    // alias works without it — which also avoids the TS 7 deprecation warning
+    // and the "ignoreDeprecations" flag that older tsc versions reject.
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],
