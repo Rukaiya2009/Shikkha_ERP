@@ -14,7 +14,7 @@ import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
 import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
 import { UserList } from './features/user/components/UserList';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
-import { navForRole, DELIVERED_THROUGH, AppRole } from './layouts/navConfig';
+import { navForRole, AppRole } from './layouts/navConfig';
 
 const getUserRole = (): string | null => {
   try {
@@ -65,7 +65,10 @@ const routesForRole = (role: AppRole) =>
   navForRole(role)
     .flatMap((g) => g.items)
     .map((leaf) => {
-      const ready = IMPLEMENTED[leaf.path] && (leaf.phase ?? 99) <= DELIVERED_THROUGH;
+      // If a screen is implemented, render it — full stop. `phase` is planning
+      // metadata for the build doc, NOT a kill switch. Gating on it hid the
+      // real User Management page behind a "coming in Phase 3" placeholder.
+      const ready = Boolean(IMPLEMENTED[leaf.path]);
       return (
         <Route
           key={leaf.path}

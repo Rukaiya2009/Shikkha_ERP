@@ -15,7 +15,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight, GraduationCap, Radio, PanelLeftClose } from 'lucide-react';
+import { ChevronDown, ChevronRight, GraduationCap, Radio, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { navForRole, groupForPath, RAIL_CAPTION, ROLE_LABEL, NavLeaf } from './navConfig';
 
 export type SidebarVariant = 'grouped' | 'profile' | 'compact';
@@ -235,10 +235,12 @@ export const SidebarProfile: React.FC<RailProps> = ({ role, userName, isOpen, on
 
 /* ── C · Compact ─────────────────────────────────────────────────────── */
 
-export const SidebarCompact: React.FC<RailProps> = ({ role, isOpen, onClose, counts }) => {
+export const SidebarCompact: React.FC<RailProps> = ({ role, isOpen, onClose, counts, onCollapse }) => {
   const groups = navForRole(role);
   const [hovered, setHovered] = useState(false);
-  const wide = hovered;
+  // Pinning keeps it open on touch devices, where there is no hover.
+  const [pinned, setPinned] = useState(false);
+  const wide = hovered || pinned;
 
   return (
     <Shell isOpen={isOpen} onClose={onClose} width={wide ? 'w-[248px]' : 'w-[72px]'}>
@@ -252,14 +254,37 @@ export const SidebarCompact: React.FC<RailProps> = ({ role, isOpen, onClose, cou
             <GraduationCap className="h-[18px] w-[18px] text-[#04222B]" />
           </div>
           {wide && (
-            <div className="min-w-0 leading-tight">
-              <div className="font-display text-[15px] font-bold text-white">ShikkhaERP</div>
-              <div className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-signal">
-                {RAIL_CAPTION[role]}
+            <>
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="font-display text-[15px] font-bold text-white">ShikkhaERP</div>
+                <div className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-signal">
+                  {RAIL_CAPTION[role]}
+                </div>
               </div>
-            </div>
+              {/* Back to the full rail — without this, collapsing was one-way. */}
+              <button
+                onClick={() => { setPinned(false); onCollapse?.(); }}
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+                className="shrink-0 rounded-lg p-1.5 text-rail-dim transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            </>
           )}
         </div>
+
+        {/* Always-visible handle when narrow, so there is a way back on touch. */}
+        {!wide && (
+          <button
+            onClick={() => setPinned(true)}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            className="mx-auto mt-2 rounded-lg p-2 text-rail-dim transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        )}
 
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3" aria-label="Main navigation">
           {groups.map((group) => (
