@@ -16,6 +16,11 @@ import { UserList } from './features/user/components/UserList';
 import StudentsListPage from './features/students/StudentsListPage';
 import StudentDetailPage from './features/students/StudentDetailPage';
 import StudentFormPage from './features/students/StudentFormPage';
+import SchoolsListPage from './features/platform/schools/SchoolsListPage';
+import SchoolDetailPage from './features/platform/schools/SchoolDetailPage';
+import AddSchoolPage from './features/platform/schools/AddSchoolPage';
+import DemoRequestsPage from './features/platform/schools/DemoRequestsPage';
+import DeletionRequestsPage from './features/platform/schools/DeletionRequestsPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 import { navForRole, AppRole } from './layouts/navConfig';
 
@@ -56,6 +61,10 @@ export const homeFor = (role: string | null) => {
 const IMPLEMENTED: Record<string, JSX.Element> = {
   '/platform/dashboard': <PlatformDashboard />,
   '/platform/users': <UserList />,
+  '/platform/schools': <SchoolsListPage />,
+  '/platform/schools/new': <AddSchoolPage />,
+  '/platform/schools/deletions': <DeletionRequestsPage />,
+  '/platform/approvals': <DemoRequestsPage />,
   '/school-admin/dashboard': <AdminDashboard />,
   '/school-admin/users': <UserList />,
   '/school-admin/students': <StudentsListPage />,
@@ -70,7 +79,13 @@ const IMPLEMENTED: Record<string, JSX.Element> = {
  * Static segments outrank dynamic ones in React Router, so /students/new wins
  * over /students/:id without needing a particular order.
  */
+const PLATFORM_EXTRAS = [
+  { path: '/platform/schools/:id', element: <SchoolDetailPage /> },
+];
+
 const EXTRA_ROUTES: Partial<Record<AppRole, { path: string; element: JSX.Element }[]>> = {
+  super_admin: PLATFORM_EXTRAS,
+  developer: PLATFORM_EXTRAS,
   school_admin: [
     { path: '/school-admin/students/new', element: <StudentFormPage /> },
     { path: '/school-admin/students/:id', element: <StudentDetailPage /> },
