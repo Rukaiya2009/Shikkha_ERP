@@ -22,7 +22,7 @@ import superAdminService from '../features/dashboard/services/superAdmin.service
 import {
   schools as mockSchools, demoRequests, growthSeries, planMix, auditLogs,
   platformTotals, trialDaysLeft, MockSchool,
-} from '../platform/data/mock';
+} from '../features/platform/data/mock';
 
 const C = {
   brand: '#034078', deep: '#001F54', teal: '#1282A2', ocean: '#3E92CC',

@@ -17,7 +17,7 @@ import {
   PageHeader, SectionCard, StatCard, Badge, BadgeTone, EmptyState, Th,
   ConfirmDialog, Toast, useToast, DemoChip,
 } from '../../../shared/ui';
-import { deletionRequests, schools } from '../../../platform/data/mock';
+import { deletionRequests, schools } from '../data/mock';
 import { timeAgo, dateTime, taka, initials, tintFor } from '../format';
 
 const STATUS_TONE: Record<string, BadgeTone> = {

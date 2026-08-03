@@ -18,7 +18,7 @@ import {
   PageHeader, SectionCard, Badge, FormSection, Field, TextInput, TextArea,
   SelectInput, SegmentedInput, Toast, useToast, DemoChip,
 } from '../../../shared/ui';
-import { plans, schools } from '../../../platform/data/mock';
+import { plans, schools } from '../data/mock';
 import { taka, toSubdomain, toCode } from '../format';
 
 const DISTRICTS = [

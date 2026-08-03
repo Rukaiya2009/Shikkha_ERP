@@ -24,7 +24,7 @@ import {
   PageHeader, SectionCard, StatCard, Badge, EmptyState, Toast, useToast, DemoChip,
   TextInput, TextArea, Field,
 } from '../../../shared/ui';
-import { demoRequests, MockDemoRequest } from '../../../platform/data/mock';
+import { demoRequests, MockDemoRequest } from '../data/mock';
 import { timeAgo, untilLabel, dateTime, initials, tintFor, toSubdomain, toCode } from '../format';
 
 const DECLINE_REASONS = [

@@ -26,7 +26,7 @@ import {
 } from '../../../shared/ui';
 import {
   schools, MockSchool, trialDaysLeft, featureFlags, auditLogs, plans, growthSeries, moduleUsage,
-} from '../../../platform/data/mock';
+} from '../data/mock';
 import { taka, timeAgo, shortDate, dateTime, initials, tintFor } from '../format';
 import { PLAN_TONE, STATUS_TONE } from './SchoolsListPage';
 

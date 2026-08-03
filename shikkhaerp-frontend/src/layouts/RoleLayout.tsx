@@ -12,7 +12,7 @@ import { AppHeader, Notice } from './AppHeader';
 import { AppFooter } from './AppFooter';
 import { SIDEBAR_VARIANTS, SIDEBAR_DEFAULT, SidebarVariant } from './Sidebars';
 import { ChangePasswordModal } from '../features/auth/components/ChangePasswordModal';
-import { platformTotals } from '../platform/data/mock';
+import { platformTotals } from '../features/platform/data/mock';
 
 const VARIANT_KEY = 'shikkha.sidebarVariant';
 

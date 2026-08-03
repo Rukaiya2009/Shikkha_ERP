@@ -20,7 +20,7 @@ import {
   TableToolbar, FilterSelect, SortHeader, Th, RowMenu, BulkBar, RowCheckbox,
   Pagination, downloadCsv, ConfirmDialog, Toast, useToast, DemoChip, SortDir,
 } from '../../../shared/ui';
-import { schools as SEED, MockSchool, trialDaysLeft } from '../../../platform/data/mock';
+import { schools as SEED, MockSchool, trialDaysLeft } from '../data/mock';
 import { taka, timeAgo, initials, tintFor } from '../format';
 
 export const PLAN_TONE: Record<string, BadgeTone> = {
