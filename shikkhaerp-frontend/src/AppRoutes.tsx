@@ -13,6 +13,9 @@ import ParentDashboard from './features/dashboard/ParentDashboard';
 import SchoolCreationPage from './features/dashboard/SchoolCreationPage';
 import WelcomeDashboard from './features/dashboard/WelcomeDashboard';
 import { UserList } from './features/user/components/UserList';
+import StudentsListPage from './features/students/StudentsListPage';
+import StudentDetailPage from './features/students/StudentDetailPage';
+import StudentFormPage from './features/students/StudentFormPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 import { navForRole, AppRole } from './layouts/navConfig';
 
@@ -55,14 +58,29 @@ const IMPLEMENTED: Record<string, JSX.Element> = {
   '/platform/users': <UserList />,
   '/school-admin/dashboard': <AdminDashboard />,
   '/school-admin/users': <UserList />,
+  '/school-admin/students': <StudentsListPage />,
   '/teacher/dashboard': <TeacherDashboard />,
   '/student/dashboard': <StudentDashboard />,
   '/parent/dashboard': <ParentDashboard />,
 };
 
+/**
+ * Screens that hang off a nav leaf instead of being one — record pages and
+ * forms. They are not in the rail, so they need declaring here or they 404.
+ * Static segments outrank dynamic ones in React Router, so /students/new wins
+ * over /students/:id without needing a particular order.
+ */
+const EXTRA_ROUTES: Partial<Record<AppRole, { path: string; element: JSX.Element }[]>> = {
+  school_admin: [
+    { path: '/school-admin/students/new', element: <StudentFormPage /> },
+    { path: '/school-admin/students/:id', element: <StudentDetailPage /> },
+    { path: '/school-admin/students/:id/edit', element: <StudentFormPage /> },
+  ],
+};
+
 /** One <Route> per nav leaf, guarded to the role that owns it. */
-const routesForRole = (role: AppRole) =>
-  navForRole(role)
+const routesForRole = (role: AppRole) => {
+  const leaves = navForRole(role)
     .flatMap((g) => g.items)
     .map((leaf) => {
       // If a screen is implemented, render it — full stop. `phase` is planning
@@ -81,6 +99,17 @@ const routesForRole = (role: AppRole) =>
         />
       );
     });
+
+  const extras = (EXTRA_ROUTES[role] ?? []).map((r) => (
+    <Route
+      key={r.path}
+      path={r.path}
+      element={<RoleBasedRoute allowedRoles={[role]}>{r.element}</RoleBasedRoute>}
+    />
+  ));
+
+  return [...leaves, ...extras];
+};
 
 export const AppRoutes = () => {
   const role = getUserRole();
@@ -118,6 +147,7 @@ export const AppRoutes = () => {
       <Route path="/developer/email-logs" element={<Navigate to="/platform/email-log" replace />} />
       <Route path="/developer/settings" element={<Navigate to="/platform/settings/general" replace />} />
       <Route path="/admin/dashboard" element={<Navigate to="/school-admin/dashboard" replace />} />
+      <Route path="/admin/students" element={<Navigate to="/school-admin/students" replace />} />
 
       <Route path="/" element={<Navigate to={homeFor(role)} replace />} />
       <Route path="*" element={<Navigate to={homeFor(role)} replace />} />
