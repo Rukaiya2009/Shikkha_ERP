@@ -22,5 +22,5 @@ export {
 
 /* Phase 2 — overlays, tabs, labelling */
 export { ConfirmDialog } from './ConfirmDialog';
-export { Tabs, DemoChip, Toast, useToast } from './Tabs';
+export { Tabs, DemoChip, LiveChip, Toast, useToast } from './Tabs';
 export type { TabItem, ToastState } from './Tabs';

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, FlaskConical, X } from 'lucide-react';
+import { CheckCircle2, FlaskConical, Radio, X } from 'lucide-react';
 
 /* ═════════════════════════════════ tabs ═════════════════════════════════ */
 
@@ -63,6 +63,24 @@ export const DemoChip: React.FC<{ label?: string; className?: string }> = ({
     title="Placeholder data — no backend endpoint yet"
   >
     <FlaskConical className="h-3 w-3" />
+    {label}
+  </span>
+);
+
+/**
+ * The opposite of DemoChip: this screen is reading the real backend. Worth
+ * saying out loud, because in a console that is half mock and half live the
+ * only thing more dangerous than an unlabelled mock is an unlabelled real one.
+ */
+export const LiveChip: React.FC<{ label?: string; className?: string }> = ({
+  label = 'Live API',
+  className = '',
+}) => (
+  <span
+    className={`inline-flex items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-success ${className}`}
+    title="Reading the Spring Boot backend"
+  >
+    <Radio className="h-3 w-3" />
     {label}
   </span>
 );

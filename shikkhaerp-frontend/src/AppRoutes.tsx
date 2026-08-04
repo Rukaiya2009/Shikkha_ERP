@@ -21,6 +21,8 @@ import SchoolDetailPage from './features/platform/schools/SchoolDetailPage';
 import AddSchoolPage from './features/platform/schools/AddSchoolPage';
 import DemoRequestsPage from './features/platform/schools/DemoRequestsPage';
 import DeletionRequestsPage from './features/platform/schools/DeletionRequestsPage';
+import AuditLogPage from './features/platform/audit/AuditLogPage';
+import LoginHistoryPage from './features/platform/audit/LoginHistoryPage';
 import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
 import { navForRole, AppRole } from './layouts/navConfig';
 
@@ -65,6 +67,8 @@ const IMPLEMENTED: Record<string, JSX.Element> = {
   '/platform/schools/new': <AddSchoolPage />,
   '/platform/schools/deletions': <DeletionRequestsPage />,
   '/platform/approvals': <DemoRequestsPage />,
+  '/platform/audit-log': <AuditLogPage />,
+  '/platform/login-history': <LoginHistoryPage />,
   '/school-admin/dashboard': <AdminDashboard />,
   '/school-admin/users': <UserList />,
   '/school-admin/students': <StudentsListPage />,
